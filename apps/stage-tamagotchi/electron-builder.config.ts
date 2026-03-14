@@ -95,6 +95,7 @@ export default {
   },
   win: {
     executableName: 'airi',
+    signAndEditExecutable: false,
   },
   nsis: {
     artifactName: '${productName}-${version}-windows-${arch}-setup.${ext}',

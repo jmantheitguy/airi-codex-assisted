@@ -455,7 +455,7 @@ export const useProvidersStore = defineStore('providers', () => {
           }
         },
       },
-    } as ProviderMetadata),
+    }),
     'browser-local-audio-transcription': buildOpenAICompatibleProvider({
       id: 'browser-local-audio-transcription',
       name: 'Browser (Local)',

@@ -52,3 +52,4 @@ This repository is now maintained as a standalone GitHub project under the curre
 - Any code changes from this point forward should be committed to this local repository and pushed to the GitHub remote for this project.
 - Do not reconnect this repo to the original `moeru-ai/airi` remote.
 - Before finishing substantial work, ensure the relevant changes are committed and ready to push, unless the user explicitly asks to keep them local only.
+- After any code change that affects the app, rerun the desktop packaging path for `apps/stage-tamagotchi` so the Windows desktop build stays current and verified.
