@@ -20,6 +20,16 @@
 > This repository is a derivative work of the original [moeru-ai/airi](https://github.com/moeru-ai/airi) project by the Moeru AI / Project AIRI contributors. The original creators deserve full credit for the underlying project, architecture, and assets this repository builds on.
 
 <p align="center">
+  [<a href="https://github.com/jmantheitguy/airi-codex-assisted">This Fork</a>] [<a href="https://github.com/moeru-ai/airi">Original AIRI</a>] [<a href="https://airi.moeru.ai">Upstream Docs</a>]
+</p>
+
+<p align="center">
+  <a href="https://github.com/jmantheitguy/airi-codex-assisted/blob/main/LICENSE"><img src="https://img.shields.io/github/license/jmantheitguy/airi-codex-assisted.svg?style=flat&colorA=080f12&colorB=1fa669"></a>
+  <a href="https://github.com/jmantheitguy/airi-codex-assisted"><img src="https://img.shields.io/github/stars/jmantheitguy/airi-codex-assisted?style=flat&colorA=080f12&colorB=1fa669"></a>
+  <a href="https://github.com/moeru-ai/airi"><img src="https://img.shields.io/badge/upstream-moeru--ai%2Fairi-5865F2?style=flat"></a>
+</p>
+
+<p align="center">
   [<a href="https://discord.gg/TgQ3Cu2F7A">Join Discord Server</a>] [<a href="https://airi.moeru.ai">Try it</a>] [<a href="https://github.com/moeru-ai/airi/blob/main/docs/README.zh-CN.md">简体中文</a>] [<a href="https://github.com/moeru-ai/airi/blob/main/docs/README.ja-JP.md">日本語</a>] [<a href="https://github.com/moeru-ai/airi/blob/main/docs/README.ru-RU.md">Русский</a>] [<a href="https://github.com/moeru-ai/airi/blob/main/docs/README.vi.md">Tiếng Việt</a>] [<a href="https://github.com/moeru-ai/airi/blob/main/docs/README.fr.md">Français</a>] [<a href="https://github.com/moeru-ai/airi/blob/main/docs/README.ko-KR.md">한국어</a>]
 </p>
 
@@ -77,6 +87,35 @@ In addition to the original AIRI foundation, this repository includes custom wor
   UI-configurable local Minecraft bot runtime, offline-mode support for LAN servers, command-driven control, and early autonomy/gameplay behaviors.
 - Runtime UX fixes:
   working memory context strip, hearing fixes on the main chat screen, and multiple settings pages that were previously placeholders or broken routes.
+
+## Differences From Upstream
+
+- This repository is maintained as a standalone GitHub project with its own history and remote.
+- Branding and repo metadata are fork-specific, while attribution to the original AIRI creators is preserved.
+- This fork is focused on practical local workflows: browser-local speech, browser-local transcription, memory improvements, and a usable Minecraft bot runtime.
+- Several previously incomplete or broken settings routes were wired into working runtime behavior here.
+
+## Getting Started For This Fork
+
+Install dependencies and run the web app:
+
+```bash
+pnpm install
+pnpm dev:web
+```
+
+Useful routes and modules:
+
+- Speech: `/settings/modules/speech`
+- Hearing: `/settings/modules/hearing`
+- Memory: `/settings/memory`
+- Minecraft: `/settings/modules/gaming-minecraft`
+
+Minecraft runtime notes:
+
+- The service lives in `services/minecraft`.
+- For local Java LAN servers, offline auth can be used.
+- Ollama-backed local model configuration is supported through the Minecraft service env files.
 
 ## DevLogs We Posted & Recent Updates
 
