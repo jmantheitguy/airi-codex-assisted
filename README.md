@@ -12,9 +12,9 @@
   <img width="250" src="./docs/content/public/banner-light-1280x640.avif" />
 </picture>
 
-<h1 align="center">Project AIRI</h1>
+<h1 align="center">Airi Codex Assisted</h1>
 
-<p align="center">Re-creating Neuro-sama, a soul container of AI waifu / virtual characters to bring them into our world.</p>
+<p align="center">A standalone AIRI-derived companion stack with custom memory, local speech, local transcription, and Minecraft autonomy work.</p>
 
 > [!IMPORTANT]
 > This repository is a derivative work of the original [moeru-ai/airi](https://github.com/moeru-ai/airi) project by the Moeru AI / Project AIRI contributors. The original creators deserve full credit for the underlying project, architecture, and assets this repository builds on.
