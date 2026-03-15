@@ -1958,6 +1958,10 @@ export const useProvidersStore = defineStore('providers', () => {
       }
 
       const loop = useIntervalFn(() => {
+        if (!shouldValidateProvider(providerId)) {
+          return
+        }
+
         void validateProvider(providerId, { force: true })
       }, intervalMs, { immediate: false, immediateCallback: false })
       loop.resume()
@@ -1968,9 +1972,11 @@ export const useProvidersStore = defineStore('providers', () => {
   // Update configuration status for all configured providers
   async function updateConfigurationStatus() {
     await Promise.all(Object.entries(providerMetadata)
-      // TODO: ignore un-configured provider
-      // .filter(([_, provider]) => provider.configured)
       .map(async ([providerId]) => {
+        if (!shouldValidateProvider(providerId)) {
+          return
+        }
+
         try {
           if (providerRuntimeState.value[providerId]) {
             const isValid = await validateProvider(providerId)
@@ -2271,6 +2277,22 @@ export const useProvidersStore = defineStore('providers', () => {
 
     const defaultOptions = getDefaultProviderConfig(providerId)
     return JSON.stringify(config) !== JSON.stringify(defaultOptions)
+  }
+
+  function shouldValidateProvider(providerId: string) {
+    if (['speech-noop', 'browser-local-audio-speech', 'browser-local-audio-transcription', 'browser-web-speech-api'].includes(providerId)) {
+      return true
+    }
+
+    if (addedProviders.value[providerId]) {
+      return true
+    }
+
+    if (isProviderConfigDirty(providerId)) {
+      return true
+    }
+
+    return !!providerRuntimeState.value[providerId]?.validatedCredentialHash
   }
 
   function shouldListProvider(providerId: string) {

@@ -46,4 +46,7 @@ export const i18n = createI18n({
   locale: getLocale(),
   fallbackLocale: 'en',
   messages,
+  fallbackWarn: false,
+  missingWarn: false,
+  warnHtmlMessage: false,
 })

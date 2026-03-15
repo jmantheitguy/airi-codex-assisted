@@ -18,7 +18,39 @@ export const useModsServerChannelStore = defineStore('mods:channels:proj-airi:se
   const listenerDisposers = ref<Array<() => void>>([])
 
   const defaultWebSocketUrl = import.meta.env.VITE_AIRI_WS_URL || 'ws://localhost:6121/ws'
+  const websocketUrlStorageKey = 'settings/connection/websocket-url'
   const websocketUrl = useLocalStorage('settings/connection/websocket-url', defaultWebSocketUrl)
+
+  function hasExplicitWebSocketConfiguration() {
+    if (import.meta.env.VITE_AIRI_WS_URL) {
+      return true
+    }
+
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    const storedUrl = window.localStorage.getItem(websocketUrlStorageKey)
+    return !!storedUrl && storedUrl !== defaultWebSocketUrl
+  }
+
+  function shouldRetryConnection(url: string) {
+    if (import.meta.env.VITE_AIRI_WS_URL) {
+      return true
+    }
+
+    try {
+      const parsed = new URL(url)
+      const isLocalDefault = parsed.hostname === 'localhost'
+        && parsed.port === '6121'
+        && parsed.pathname === '/ws'
+
+      return !isLocalDefault
+    }
+    catch {
+      return false
+    }
+  }
 
   const basePossibleEvents: Array<keyof WebSocketEvents> = [
     'context:update',
@@ -43,17 +75,37 @@ export const useModsServerChannelStore = defineStore('mods:channels:proj-airi:se
     if (initializing.value)
       return initializing.value
 
+    const targetUrl = websocketUrl.value || defaultWebSocketUrl
+    const shouldAttemptConnection = hasExplicitWebSocketConfiguration() || targetUrl !== defaultWebSocketUrl
+
+    if (!shouldAttemptConnection) {
+      connected.value = false
+      initializing.value = null
+      return Promise.resolve()
+    }
+
     const possibleEvents = Array.from(new Set<keyof WebSocketEvents>([
       ...basePossibleEvents,
       ...(options?.possibleEvents ?? []),
     ]))
 
     initializing.value = new Promise<void>((resolve) => {
+      let settled = false
+      const finish = () => {
+        if (settled)
+          return
+
+        settled = true
+        resolve()
+      }
+
       client.value = new Client({
         name: isStageWeb() ? WebSocketEventSource.StageWeb : isStageTamagotchi() ? WebSocketEventSource.StageTamagotchi : WebSocketEventSource.StageWeb,
-        url: websocketUrl.value || defaultWebSocketUrl,
+        url: targetUrl,
         token: options?.token,
         possibleEvents,
+        autoReconnect: shouldRetryConnection(targetUrl),
+        maxReconnectAttempts: shouldRetryConnection(targetUrl) ? -1 : 1,
         onAnyMessage: (event) => {
           useWebSocketInspectorStore().add('incoming', event)
         },
@@ -64,6 +116,7 @@ export const useModsServerChannelStore = defineStore('mods:channels:proj-airi:se
           connected.value = false
           initializing.value = null
           clearListeners()
+          finish()
 
           console.warn('WebSocket server connection error:', error)
         },
@@ -71,6 +124,7 @@ export const useModsServerChannelStore = defineStore('mods:channels:proj-airi:se
           connected.value = false
           initializing.value = null
           clearListeners()
+          finish()
 
           console.warn('WebSocket server connection closed')
         },
@@ -81,7 +135,7 @@ export const useModsServerChannelStore = defineStore('mods:channels:proj-airi:se
           connected.value = true
           flush()
           initializeListeners()
-          resolve()
+          finish()
 
           // eslint-disable-next-line no-console
           console.log('WebSocket server connection established and authenticated')

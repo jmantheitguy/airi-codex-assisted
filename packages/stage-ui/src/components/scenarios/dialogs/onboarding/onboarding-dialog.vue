@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMediaQuery, useResizeObserver, useScreenSafeArea } from '@vueuse/core'
-import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle, VisuallyHidden } from 'reka-ui'
+import { DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle, VisuallyHidden } from 'reka-ui'
 import { DrawerContent, DrawerHandle, DrawerOverlay, DrawerPortal, DrawerRoot } from 'vaul-vue'
 import { onMounted } from 'vue'
 
@@ -24,10 +24,16 @@ onMounted(() => screenSafeArea.update())
   <DialogRoot v-if="isDesktop" :open="showDialog" @update:open="value => showDialog = value">
     <DialogPortal>
       <DialogOverlay class="fixed inset-0 z-9999 bg-black/50 backdrop-blur-sm data-[state=closed]:animate-fadeOut data-[state=open]:animate-fadeIn" />
-      <DialogContent class="fixed left-1/2 top-1/2 z-9999 max-h-full max-w-2xl w-[92dvw] transform overflow-y-scroll rounded-2xl bg-white p-6 shadow-xl outline-none backdrop-blur-md scrollbar-none -translate-x-1/2 -translate-y-1/2 data-[state=closed]:animate-contentHide data-[state=open]:animate-contentShow dark:bg-neutral-900">
+      <DialogContent
+        aria-describedby="onboarding-dialog-description"
+        class="fixed left-1/2 top-1/2 z-9999 max-h-full max-w-2xl w-[92dvw] transform overflow-y-scroll rounded-2xl bg-white p-6 shadow-xl outline-none backdrop-blur-md scrollbar-none -translate-x-1/2 -translate-y-1/2 data-[state=closed]:animate-contentHide data-[state=open]:animate-contentShow dark:bg-neutral-900"
+      >
         <VisuallyHidden>
           <DialogTitle>Onboarding</DialogTitle>
         </VisuallyHidden>
+        <DialogDescription id="onboarding-dialog-description" class="sr-only">
+          Initial setup flow for configuring AIRI providers.
+        </DialogDescription>
         <Onboarding @configured="emit('configured')" @skipped="emit('skipped')" />
       </DialogContent>
     </DialogPortal>
