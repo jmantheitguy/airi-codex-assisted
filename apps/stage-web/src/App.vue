@@ -4,6 +4,7 @@ import { useSharedAnalyticsStore } from '@proj-airi/stage-ui/stores/analytics'
 import { useCharacterOrchestratorStore } from '@proj-airi/stage-ui/stores/character'
 import { useChatMemoryRuntimeStore } from '@proj-airi/stage-ui/stores/chat/memory-runtime'
 import { useChatSessionStore } from '@proj-airi/stage-ui/stores/chat/session-store'
+import { useChatVisionRuntimeStore } from '@proj-airi/stage-ui/stores/chat/vision-runtime'
 import { useDisplayModelsStore } from '@proj-airi/stage-ui/stores/display-models'
 import { useModsServerChannelStore } from '@proj-airi/stage-ui/stores/mods/api/channel-server'
 import { useContextBridgeStore } from '@proj-airi/stage-ui/stores/mods/api/context-bridge'
@@ -32,6 +33,7 @@ const settings = storeToRefs(settingsStore)
 const onboardingStore = useOnboardingStore()
 const chatSessionStore = useChatSessionStore()
 const chatMemoryRuntimeStore = useChatMemoryRuntimeStore()
+const chatVisionRuntimeStore = useChatVisionRuntimeStore()
 const serverChannelStore = useModsServerChannelStore()
 const characterOrchestratorStore = useCharacterOrchestratorStore()
 const { shouldShowSetup } = storeToRefs(onboardingStore)
@@ -84,6 +86,7 @@ onMounted(async () => {
   await serverChannelStore.initialize({ possibleEvents: ['ui:configure'] }).catch(err => console.error('Failed to initialize Mods Server Channel in App.vue:', err))
   await contextBridgeStore.initialize()
   chatMemoryRuntimeStore.initialize()
+  chatVisionRuntimeStore.initialize()
   characterOrchestratorStore.initialize()
 
   await displayModelsStore.loadDisplayModelsFromIndexedDB()
@@ -93,6 +96,7 @@ onMounted(async () => {
 onUnmounted(() => {
   contextBridgeStore.dispose()
   chatMemoryRuntimeStore.dispose()
+  chatVisionRuntimeStore.dispose()
 })
 
 // Handle first-time setup events

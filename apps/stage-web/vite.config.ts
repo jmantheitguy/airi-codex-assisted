@@ -106,7 +106,7 @@ export default defineConfig({
                 return 'vendor-3d'
               }
 
-              if (moduleId.includes('shiki') || moduleId.includes('mermaid') || moduleId.includes('@vue-flow')) {
+              if (moduleId.includes('mermaid') || moduleId.includes('@vue-flow')) {
                 return 'vendor-rich-content'
               }
             },

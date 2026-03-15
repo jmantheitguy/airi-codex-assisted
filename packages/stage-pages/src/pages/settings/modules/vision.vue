@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PerceptionState } from '@proj-airi/model-driver-mediapipe'
+import type { VisionCaptureSource } from '@proj-airi/stage-ui/stores/modules'
 
 import { createMediaPipeBackend, createMocapEngine, drawOverlay } from '@proj-airi/model-driver-mediapipe'
 import { useVisionStore } from '@proj-airi/stage-ui/stores/modules'
@@ -9,7 +10,10 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 const visionStore = useVisionStore()
 const {
+  activeInputLabel,
   availableVideoInputs,
+  captureSource,
+  contextInjectionEnabled,
   enabled,
   faceEnabled,
   faceHz,
@@ -29,6 +33,10 @@ const {
 const videoRef = ref<HTMLVideoElement>()
 const canvasRef = ref<HTMLCanvasElement>()
 const latestState = ref<PerceptionState>()
+
+const supportsScreenCapture = computed(() => {
+  return typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getDisplayMedia === 'function'
+})
 
 const summary = computed(() => {
   const quality = latestState.value?.quality
@@ -53,8 +61,17 @@ const previewStyle = computed(() => ({
   transform: mirrorPreview.value ? 'scaleX(-1)' : 'scaleX(1)',
 }))
 
+const sourceDescription = computed(() => {
+  if (captureSource.value === 'screen') {
+    return 'Share a browser tab, window, or full display and feed it into the local MediaPipe pipeline.'
+  }
+
+  return 'Use a camera device for local face, hands, and pose tracking.'
+})
+
 let stream: MediaStream | undefined
 let engine: ReturnType<typeof createMocapEngine> | undefined
+let trackEndedHandler: (() => void) | undefined
 
 function currentConfig() {
   return {
@@ -81,10 +98,37 @@ async function syncDeviceList() {
   }
 }
 
+function setRuntimeSummary(state?: PerceptionState) {
+  if (!state) {
+    visionStore.setLatestSummary(undefined)
+    return
+  }
+
+  const quality = state.quality
+  visionStore.setLatestSummary({
+    inputLabel: activeInputLabel.value,
+    captureSource: captureSource.value,
+    fps: quality?.fps ?? 0,
+    latencyMs: quality?.latencyMs ?? 0,
+    droppedFrames: quality?.droppedFrames ?? 0,
+    hasFace: state.face?.hasFace ?? false,
+    handCount: state.hands?.length ?? 0,
+    posePoints: state.pose?.worldLandmarks?.filter(point => (point.visibility ?? 0) >= minPoseVisibility.value).length ?? 0,
+    lastUpdatedAt: Date.now(),
+  })
+}
+
 function stopPreview(options?: { keepStatus?: boolean }) {
   engine?.stop()
   engine = undefined
   latestState.value = undefined
+  setRuntimeSummary(undefined)
+
+  const [videoTrack] = stream?.getVideoTracks() ?? []
+  if (videoTrack && trackEndedHandler) {
+    videoTrack.removeEventListener('ended', trackEndedHandler)
+  }
+  trackEndedHandler = undefined
 
   if (stream) {
     for (const track of stream.getTracks()) {
@@ -93,6 +137,7 @@ function stopPreview(options?: { keepStatus?: boolean }) {
   }
 
   stream = undefined
+  visionStore.setActiveInputLabel('')
 
   if (videoRef.value)
     videoRef.value.srcObject = null
@@ -101,6 +146,32 @@ function stopPreview(options?: { keepStatus?: boolean }) {
   if (!options?.keepStatus) {
     visionStore.setRuntimeStatus('idle')
   }
+}
+
+async function requestVisionStream(source: VisionCaptureSource) {
+  if (source === 'screen') {
+    if (!supportsScreenCapture.value) {
+      throw new Error('Screen capture is not available in this browser.')
+    }
+
+    return navigator.mediaDevices.getDisplayMedia({
+      audio: false,
+      video: {
+        frameRate: { ideal: 30, max: 30 },
+      },
+    })
+  }
+
+  const constraints: MediaStreamConstraints = {
+    audio: false,
+    video: selectedVideoInput.value
+      ? {
+          deviceId: { ideal: selectedVideoInput.value },
+        }
+      : true,
+  }
+
+  return navigator.mediaDevices.getUserMedia(constraints)
 }
 
 async function startPreview() {
@@ -113,26 +184,27 @@ async function startPreview() {
     stopPreview()
     visionStore.setRuntimeStatus('starting')
 
-    const constraints: MediaStreamConstraints = {
-      audio: false,
-      video: selectedVideoInput.value
-        ? {
-            deviceId: { ideal: selectedVideoInput.value },
-          }
-        : true,
-    }
-
-    stream = await navigator.mediaDevices.getUserMedia(constraints)
+    stream = await requestVisionStream(captureSource.value)
     visionStore.setPermissionState('granted')
 
-    if (!selectedVideoInput.value) {
-      const [track] = stream.getVideoTracks()
-      if (track) {
-        const settings = track.getSettings()
-        if (settings.deviceId)
-          selectedVideoInput.value = settings.deviceId
-      }
+    const [track] = stream.getVideoTracks()
+    const settings = track?.getSettings()
+    const inputLabel = track?.label
+      || (captureSource.value === 'screen'
+        ? (typeof settings?.displaySurface === 'string' ? `Screen (${settings.displaySurface})` : 'Shared screen')
+        : 'Camera input')
+    visionStore.setActiveInputLabel(inputLabel)
+
+    if (captureSource.value === 'camera' && !selectedVideoInput.value && settings?.deviceId) {
+      selectedVideoInput.value = settings.deviceId
     }
+
+    trackEndedHandler = () => {
+      stopPreview({ keepStatus: true })
+      visionStore.setRuntimeStatus('idle')
+      visionStore.setPermissionState('unknown')
+    }
+    track?.addEventListener('ended', trackEndedHandler)
 
     if (!videoRef.value)
       throw new Error('Vision preview is not mounted')
@@ -149,6 +221,7 @@ async function startPreview() {
       },
       (state) => {
         latestState.value = state
+        setRuntimeSummary(state)
 
         const canvas = canvasRef.value
         const video = videoRef.value
@@ -184,7 +257,9 @@ async function startPreview() {
     )
 
     visionStore.setRuntimeStatus('running')
-    await syncDeviceList()
+    if (captureSource.value === 'camera') {
+      await syncDeviceList()
+    }
   }
   catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -200,17 +275,20 @@ watch(
   [poseEnabled, handsEnabled, faceEnabled, poseHz, handsHz, faceHz],
   () => {
     engine?.updateConfig(currentConfig())
+    if (latestState.value) {
+      setRuntimeSummary(latestState.value)
+    }
   },
   { deep: false },
 )
 
-watch([enabled, selectedVideoInput], async ([isEnabled, deviceId], [wasEnabled, previousDeviceId]) => {
+watch([enabled, selectedVideoInput, captureSource], async ([isEnabled, deviceId, source], [wasEnabled, previousDeviceId, previousSource]) => {
   if (!isEnabled) {
     stopPreview()
     return
   }
 
-  if (!wasEnabled || deviceId !== previousDeviceId) {
+  if (!wasEnabled || deviceId !== previousDeviceId || source !== previousSource) {
     await startPreview()
   }
 })
@@ -236,7 +314,7 @@ onUnmounted(() => {
             Vision Pipeline
           </h2>
           <p class="mt-1 max-w-2xl text-sm text-neutral-500 dark:text-neutral-400">
-            Enable the local camera pipeline, choose an input device, and inspect live MediaPipe face, hand, and pose tracking.
+            Run local MediaPipe face, hand, and pose tracking from either a camera or a shared screen, then inject the latest scene summary into chat context.
           </p>
         </div>
 
@@ -273,6 +351,10 @@ onUnmounted(() => {
             <div class="absolute left-3 top-3 rounded-lg bg-black/55 px-3 py-2 text-xs text-white backdrop-blur">
               <div>Status: {{ runtimeStatus }}</div>
               <div>Permission: {{ permissionState }}</div>
+              <div>Source: {{ captureSource === 'screen' ? 'screen share' : 'camera' }}</div>
+              <div v-if="activeInputLabel">
+                Input: {{ activeInputLabel }}
+              </div>
               <div v-if="lastError" class="mt-1 text-red-300">
                 {{ lastError }}
               </div>
@@ -283,17 +365,62 @@ onUnmounted(() => {
         <div class="grid gap-4">
           <div class="border border-neutral-200 rounded-2xl bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-950/60">
             <div class="mb-3 text-sm text-neutral-800 font-medium dark:text-neutral-100">
-              Camera
+              Input Source
             </div>
 
+            <div class="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                class="border rounded-xl px-4 py-3 text-left transition"
+                :class="captureSource === 'camera'
+                  ? 'border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950'
+                  : 'border-neutral-200 bg-white text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200'"
+                @click="captureSource = 'camera'"
+              >
+                <div class="text-sm font-medium">
+                  Camera
+                </div>
+                <div class="mt-1 text-xs opacity-80">
+                  Use a camera device directly.
+                </div>
+              </button>
+
+              <button
+                type="button"
+                class="border rounded-xl px-4 py-3 text-left transition"
+                :class="captureSource === 'screen'
+                  ? 'border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950'
+                  : 'border-neutral-200 bg-white text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200'"
+                :disabled="!supportsScreenCapture"
+                @click="captureSource = 'screen'"
+              >
+                <div class="text-sm font-medium">
+                  Screen share
+                </div>
+                <div class="mt-1 text-xs opacity-80">
+                  Track a window, browser tab, or full display.
+                </div>
+              </button>
+            </div>
+
+            <p class="mt-3 text-sm text-neutral-500 dark:text-neutral-400">
+              {{ sourceDescription }}
+            </p>
+
             <FieldSelect
+              v-if="captureSource === 'camera'"
               v-model="selectedVideoInput"
+              class="mt-4"
               label="Video input"
               description="Choose the camera used for local vision."
               placeholder="Select camera"
               layout="vertical"
               :options="cameraOptions"
             />
+
+            <div v-else class="mt-4 border border-neutral-300 rounded-xl border-dashed bg-white/70 p-3 text-sm text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900/40 dark:text-neutral-300">
+              Screen capture uses the browser picker when you start preview. The shared track will stop if you end sharing from the browser UI.
+            </div>
 
             <div class="mt-4 flex flex-col gap-2 text-sm text-neutral-600 dark:text-neutral-300">
               <label class="flex items-center gap-2">
@@ -303,6 +430,10 @@ onUnmounted(() => {
               <label class="flex items-center gap-2">
                 <input v-model="mirrorPreview" type="checkbox" class="h-4 w-4 border-neutral-300 rounded">
                 Mirror preview
+              </label>
+              <label class="flex items-center gap-2">
+                <input v-model="contextInjectionEnabled" type="checkbox" class="h-4 w-4 border-neutral-300 rounded">
+                Inject latest vision summary into chat context
               </label>
             </div>
           </div>
