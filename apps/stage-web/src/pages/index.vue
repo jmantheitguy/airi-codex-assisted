@@ -85,7 +85,13 @@ async function startAudioInteraction() {
         if (!provider || !activeChatModel.value)
           return
 
-        await chatStore.ingest(text, { model: activeChatModel.value, chatProvider: provider as ChatProvider })
+        const providerConfig = providersStore.getProviderConfig(activeChatProvider.value)
+
+        await chatStore.ingest(text, {
+          model: activeChatModel.value,
+          chatProvider: provider as ChatProvider,
+          providerConfig,
+        })
       }
       catch (err) {
         console.error('Failed to send chat from voice:', err)

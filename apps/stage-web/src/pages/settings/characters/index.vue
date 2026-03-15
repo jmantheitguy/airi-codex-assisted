@@ -10,7 +10,7 @@ import CharacterDialog from './components/CharacterDialog.vue'
 import CharacterItem from './components/CharacterItem.vue'
 
 const characterStore = useCharacterStore()
-const { characters } = storeToRefs(characterStore)
+const { activeCharacterId, characters } = storeToRefs(characterStore)
 
 // Fetch on mount
 onMounted(() => {
@@ -42,7 +42,6 @@ function handleEdit(char: Character) {
 }
 
 function handleDelete(id: string) {
-  // TODO: Remove this
   // eslint-disable-next-line no-alert
   if (confirm('Are you sure you want to delete this character?')) {
     characterStore.remove(id).catch(console.error)
@@ -50,9 +49,7 @@ function handleDelete(id: string) {
 }
 
 function handleActivate(char: Character) {
-  // TODO: Implement activation logic (global store for active character)
-  // eslint-disable-next-line no-console
-  console.log('Activate', char.id)
+  characterStore.activate(char.id)
 }
 </script>
 
@@ -107,7 +104,7 @@ function handleActivate(char: Character) {
         v-for="char in filteredCharacters"
         :key="char.id"
         :character="char"
-        :is-active="false"
+        :is-active="activeCharacterId === char.id"
         :is-selected="selectedCharacter?.id === char.id"
         @select="handleEdit(char)"
         @activate="handleActivate(char)"

@@ -33,7 +33,11 @@ const form = reactive({
   version: '1.0.0',
   coverUrl: '',
   name: '',
+  tagline: '',
   description: '',
+  systemPrompt: '',
+  personality: '',
+  greetings: '',
 
   // Capability: LLM
   llmModel: '',
@@ -55,7 +59,14 @@ watch(() => props.character, (char) => {
     form.version = char.version
     form.coverUrl = char.coverUrl
     form.name = i18n?.name || ''
+    form.tagline = i18n?.tagline || ''
     form.description = i18n?.description || ''
+    form.systemPrompt = char.prompts?.find(prompt => prompt.type === 'system')?.content || ''
+    form.personality = char.prompts?.find(prompt => prompt.type === 'personality')?.content || ''
+    form.greetings = char.prompts
+      ?.filter(prompt => prompt.type === 'greetings')
+      .map(prompt => prompt.content)
+      .join('\n') || ''
 
     form.llmModel = llm?.config.llm?.model || ''
     form.llmTemperature = llm?.config.llm?.temperature || 0.7
@@ -69,7 +80,11 @@ watch(() => props.character, (char) => {
     form.version = '1.0.0'
     form.coverUrl = ''
     form.name = ''
+    form.tagline = ''
     form.description = ''
+    form.systemPrompt = ''
+    form.personality = ''
+    form.greetings = ''
     form.llmModel = 'gpt-4o-mini'
     form.llmTemperature = 0.7
     form.ttsVoiceId = ''
@@ -94,6 +109,7 @@ async function handleSubmit() {
     i18n: [{
       language: 'en',
       name: form.name,
+      tagline: form.tagline || undefined,
       description: form.description,
       tags: [],
     }],
@@ -124,7 +140,31 @@ async function handleSubmit() {
       },
     ],
     avatarModels: [], // TODO: Add avatar model support
-    prompts: [], // TODO: Add prompt support
+    prompts: [
+      ...(form.systemPrompt.trim()
+        ? [{
+            language: 'en',
+            type: 'system' as const,
+            content: form.systemPrompt.trim(),
+          }]
+        : []),
+      ...(form.personality.trim()
+        ? [{
+            language: 'en',
+            type: 'personality' as const,
+            content: form.personality.trim(),
+          }]
+        : []),
+      ...form.greetings
+        .split('\n')
+        .map(greeting => greeting.trim())
+        .filter(Boolean)
+        .map(greeting => ({
+          language: 'en',
+          type: 'greetings' as const,
+          content: greeting,
+        })),
+    ],
   }
 
   // Validate
@@ -141,24 +181,13 @@ async function handleSubmit() {
 
   try {
     if (props.character) {
-      // TODO: Implement update logic (requires diffing or full replacement strategy on backend)
-      // For now, we only support Create in this dialog fully or partial updates if we map correctly.
-      // Since UpdateCharacterSchema is partial, we'd need a separate flow.
-      // The current store.update takes UpdateCharacterPayload which is limited.
-      // Let's assume Create for now or minimal Update.
-      // Actually, let's just use create for new and warn for edit.
       await characterStore.update(props.character.id, {
-        characterId: form.characterId,
-        version: form.version,
-        coverUrl: form.coverUrl,
+        character: payload.character,
+        capabilities: payload.capabilities,
+        avatarModels: payload.avatarModels,
+        i18n: payload.i18n,
+        prompts: payload.prompts,
       })
-      // Capabilities/I18n update not supported in simple UpdateCharacterSchema yet?
-      // Checking types/character.ts: UpdateCharacterSchema only has version, coverUrl, characterId.
-      // So deep update is not supported by the simple endpoint yet?
-      // The plan said "update(id, payload)".
-      // The backend `update` endpoint only updates the `character` table fields.
-      // To update relations, we'd need specific endpoints or a smarter update endpoint.
-      // I will only update basic info for now.
     }
     else {
       await characterStore.create(payload)
@@ -231,8 +260,12 @@ const isOpen = computed({
                 </div>
 
                 <FieldInput v-model="form.name" label="Name (EN)" placeholder="Character Name" required />
+                <FieldInput v-model="form.tagline" label="Tagline" placeholder="Short one-line hook..." />
                 <FieldInput v-model="form.description" label="Description" type="textarea" placeholder="Short description..." />
                 <FieldInput v-model="form.coverUrl" label="Cover URL" placeholder="https://..." />
+                <FieldInput v-model="form.systemPrompt" label="System Prompt" type="textarea" placeholder="How should this character behave?" />
+                <FieldInput v-model="form.personality" label="Personality" type="textarea" placeholder="Curious, blunt, playful..." />
+                <FieldInput v-model="form.greetings" label="Greetings" type="textarea" placeholder="One greeting per line" />
               </div>
 
               <!-- Capabilities Tab -->

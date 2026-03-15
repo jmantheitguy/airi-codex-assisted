@@ -268,6 +268,7 @@ export const useHearingSpeechInputPipeline = defineStore('modules:hearing:speech
 
   const DEFAULT_SAMPLE_RATE = 16000
   const DEFAULT_STREAM_IDLE_TIMEOUT = 15000
+  const DEFAULT_ACTIVITY_RMS_THRESHOLD = 0.008
 
   function float32ToInt16(buffer: Float32Array) {
     const output = new Int16Array(buffer.length)
@@ -277,6 +278,19 @@ export const useHearingSpeechInputPipeline = defineStore('modules:hearing:speech
     }
 
     return output
+  }
+
+  function calculateRms(buffer: Float32Array) {
+    if (buffer.length === 0)
+      return 0
+
+    let sum = 0
+    for (let i = 0; i < buffer.length; i++) {
+      const sample = buffer[i] ?? 0
+      sum += sample * sample
+    }
+
+    return Math.sqrt(sum / buffer.length)
   }
 
   async function createAudioStreamFromMediaStream(stream: MediaStream, sampleRate = DEFAULT_SAMPLE_RATE, onActivity?: () => void) {
@@ -302,7 +316,9 @@ export const useHearingSpeechInputPipeline = defineStore('modules:hearing:speech
       const pcm16 = float32ToInt16(buffer)
       // Clone buffer to avoid retaining underlying ArrayBuffer references
       audioStreamController.enqueue(pcm16.buffer.slice(0))
-      onActivity?.()
+      if (calculateRms(buffer) >= DEFAULT_ACTIVITY_RMS_THRESHOLD) {
+        onActivity?.()
+      }
     }
 
     const mediaStreamSource = audioContext.createMediaStreamSource(stream)

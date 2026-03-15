@@ -4,7 +4,7 @@ import type { HonoEnv } from '../types/hono'
 import { Hono } from 'hono'
 import { safeParse } from 'valibot'
 
-import { CreateCharacterSchema, UpdateCharacterSchema } from '../api/characters.schema'
+import { CreateCharacterSchema, UpdateCharacterWithRelationsSchema } from '../api/characters.schema'
 import { authGuard } from '../middlewares/auth'
 import { createBadRequestError, createForbiddenError, createNotFoundError } from '../utils/error'
 
@@ -41,7 +41,6 @@ export function createCharacterRoutes(characterService: CharacterService) {
         throw createBadRequestError('Invalid Request', 'INVALID_REQUEST', result.issues)
       }
 
-      // @ts-expect-error - TODO: Fix this
       const character = await characterService.create({
         ...result.output,
         character: {
@@ -49,6 +48,10 @@ export function createCharacterRoutes(characterService: CharacterService) {
           ownerId: user.id,
           creatorId: user.id,
         },
+        prompts: result.output.prompts?.map(prompt => ({
+          ...prompt,
+          type: prompt.type as 'system' | 'personality' | 'greetings',
+        })),
       })
 
       return c.json(character, 201)
@@ -59,7 +62,7 @@ export function createCharacterRoutes(characterService: CharacterService) {
 
       const id = c.req.param('id')
       const body = await c.req.json()
-      const result = safeParse(UpdateCharacterSchema, body)
+      const result = safeParse(UpdateCharacterWithRelationsSchema, body)
 
       if (!result.success) {
         throw createBadRequestError('Invalid Request', 'INVALID_REQUEST', result.issues)
@@ -71,7 +74,13 @@ export function createCharacterRoutes(characterService: CharacterService) {
       if (existing.ownerId !== user.id)
         throw createForbiddenError()
 
-      const updated = await characterService.update(id, result.output)
+      const updated = await characterService.update(id, {
+        ...result.output,
+        prompts: result.output.prompts?.map(prompt => ({
+          ...prompt,
+          type: prompt.type as 'system' | 'personality' | 'greetings',
+        })),
+      })
       return c.json(updated)
     })
 

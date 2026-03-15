@@ -176,14 +176,83 @@ export function createCharacterService(db: Database) {
       })
     },
 
-    async update(id: string, data: Partial<schema.NewCharacter>) {
-      return await db.update(schema.character)
-        .set({ ...data, updatedAt: new Date() })
-        .where(and(
-          eq(schema.character.id, id),
-          isNull(schema.character.deletedAt),
-        ))
-        .returning()
+    async update(id: string, data: {
+      character?: Partial<schema.NewCharacter>
+      capabilities?: Omit<schema.NewCharacterCapability, 'characterId'>[]
+      avatarModels?: Omit<schema.NewAvatarModel, 'characterId'>[]
+      i18n?: Omit<schema.NewCharacterI18n, 'characterId'>[]
+      prompts?: Omit<schema.NewCharacterPrompt, 'characterId'>[]
+    }) {
+      return await db.transaction(async (tx) => {
+        if (data.character && Object.keys(data.character).length > 0) {
+          await tx.update(schema.character)
+            .set({ ...data.character, updatedAt: new Date() })
+            .where(and(
+              eq(schema.character.id, id),
+              isNull(schema.character.deletedAt),
+            ))
+        }
+
+        if (data.capabilities) {
+          await tx.delete(schema.characterCapabilities)
+            .where(eq(schema.characterCapabilities.characterId, id))
+
+          if (data.capabilities.length > 0) {
+            await tx.insert(schema.characterCapabilities).values(
+              data.capabilities.map(capability => ({ ...capability, characterId: id })),
+            )
+          }
+        }
+
+        if (data.avatarModels) {
+          await tx.delete(schema.avatarModel)
+            .where(eq(schema.avatarModel.characterId, id))
+
+          if (data.avatarModels.length > 0) {
+            await tx.insert(schema.avatarModel).values(
+              data.avatarModels.map(model => ({ ...model, characterId: id })),
+            )
+          }
+        }
+
+        if (data.i18n) {
+          await tx.delete(schema.characterI18n)
+            .where(eq(schema.characterI18n.characterId, id))
+
+          if (data.i18n.length > 0) {
+            await tx.insert(schema.characterI18n).values(
+              data.i18n.map(item => ({ ...item, characterId: id })),
+            )
+          }
+        }
+
+        if (data.prompts) {
+          await tx.delete(schema.characterPrompts)
+            .where(eq(schema.characterPrompts.characterId, id))
+
+          if (data.prompts.length > 0) {
+            await tx.insert(schema.characterPrompts).values(
+              data.prompts.map(prompt => ({ ...prompt, characterId: id })),
+            )
+          }
+        }
+
+        return await tx.query.character.findFirst({
+          where: and(
+            eq(schema.character.id, id),
+            isNull(schema.character.deletedAt),
+          ),
+          with: {
+            capabilities: true,
+            avatarModels: true,
+            i18n: true,
+            prompts: true,
+            likes: true,
+            bookmarks: true,
+            cover: true,
+          },
+        })
+      })
     },
 
     async delete(id: string) {

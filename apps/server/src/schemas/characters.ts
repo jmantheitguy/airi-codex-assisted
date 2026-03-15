@@ -67,7 +67,7 @@ export const avatarModel = pgTable(
 
     description: text('description').notNull(),
 
-    config: jsonb('config').notNull().$type<AvatarModelConfig[keyof AvatarModelConfig]>(),
+    config: jsonb('config').notNull().$type<AvatarModelConfig>(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     deletedAt: timestamp('deleted_at'),
@@ -85,7 +85,7 @@ export const characterCapabilities = pgTable(
 
     type: text('type').notNull().$type<keyof CharacterCapabilityConfig>(),
 
-    config: jsonb('config').notNull().$type<CharacterCapabilityConfig[keyof CharacterCapabilityConfig]>(),
+    config: jsonb('config').notNull().$type<CharacterCapabilityConfig>(),
   },
 )
 

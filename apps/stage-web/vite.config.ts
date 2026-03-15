@@ -54,6 +54,7 @@ export default defineConfig({
     alias: {
       '@proj-airi/server-sdk': resolve(join(import.meta.dirname, '..', '..', 'packages', 'server-sdk', 'src')),
       '@proj-airi/i18n': resolve(join(import.meta.dirname, '..', '..', 'packages', 'i18n', 'src')),
+      '@proj-airi/model-driver-mediapipe': resolve(join(import.meta.dirname, '..', '..', 'packages', 'model-driver-mediapipe', 'src')),
       '@proj-airi/stage-ui': resolve(join(import.meta.dirname, '..', '..', 'packages', 'stage-ui', 'src')),
       '@proj-airi/stage-pages': resolve(join(import.meta.dirname, '..', '..', 'packages', 'stage-pages', 'src')),
       '@proj-airi/stage-shared': resolve(join(import.meta.dirname, '..', '..', 'packages', 'stage-shared', 'src')),
@@ -73,14 +74,48 @@ export default defineConfig({
   },
   worker: {
     format: 'es',
-    rollupOptions: {
-      output: {
-        inlineDynamicImports: false,
-      },
-    },
   },
 
   plugins: [
+    {
+      name: 'proj-airi:manual-chunks',
+      outputOptions(options) {
+        options.codeSplitting = {
+          groups: [{
+            name(moduleId) {
+              if (!moduleId.includes('node_modules'))
+                return
+
+              if (moduleId.includes('@huggingface/transformers') || moduleId.includes('onnxruntime-web')) {
+                return 'vendor-transformers'
+              }
+
+              if (moduleId.includes('@duckdb/duckdb-wasm') || moduleId.includes('@proj-airi/drizzle-duckdb-wasm')) {
+                return 'vendor-duckdb'
+              }
+
+              if (moduleId.includes('@mediapipe/tasks-vision') || moduleId.includes('model-driver-mediapipe')) {
+                return 'vendor-mediapipe'
+              }
+
+              if (
+                moduleId.includes('three')
+                || moduleId.includes('@tresjs')
+                || moduleId.includes('@pixiv/three-vrm')
+              ) {
+                return 'vendor-3d'
+              }
+
+              if (moduleId.includes('shiki') || moduleId.includes('mermaid') || moduleId.includes('@vue-flow')) {
+                return 'vendor-rich-content'
+              }
+            },
+          }],
+        }
+        return options
+      },
+    },
+
     {
       name: 'proj-airi:strip-broken-duckdb-worker-sourcemap',
       enforce: 'pre',

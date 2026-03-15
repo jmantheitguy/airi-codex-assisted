@@ -153,6 +153,7 @@ export const CreateCharacterSchema = object({
   i18n: optional(array(object({
     language: string(),
     name: string(),
+    tagline: optional(string()),
     description: string(),
     tags: array(string()),
   }))),
@@ -164,9 +165,33 @@ export const CreateCharacterSchema = object({
 })
 
 export const UpdateCharacterSchema = object({
-  version: optional(string()),
-  coverUrl: optional(string()),
-  characterId: optional(string()),
+  character: optional(object({
+    version: optional(string()),
+    coverUrl: optional(string()),
+    characterId: optional(string()),
+  })),
+  capabilities: optional(array(object({
+    type: CharacterCapabilityTypeSchema,
+    config: CharacterCapabilityConfigSchema,
+  }))),
+  avatarModels: optional(array(object({
+    name: string(),
+    type: AvatarModelTypeSchema,
+    description: string(),
+    config: AvatarModelConfigSchema,
+  }))),
+  i18n: optional(array(object({
+    language: string(),
+    name: string(),
+    tagline: optional(string()),
+    description: string(),
+    tags: array(string()),
+  }))),
+  prompts: optional(array(object({
+    language: string(),
+    type: PromptTypeSchema,
+    content: string(),
+  }))),
 })
 
 // --- Type Exports ---

@@ -111,3 +111,23 @@ export const UpdateCharacterSchema = createInsertSchema(schema.character, {
   createdAt: optional(DateSchema),
   updatedAt: optional(DateSchema),
 })
+export const UpdateCharacterWithRelationsSchema = object({
+  character: optional(UpdateCharacterSchema),
+  capabilities: optional(array(createInsertSchema(schema.characterCapabilities, {
+    characterId: optional(string()),
+    type: CharacterCapabilityTypeSchema,
+    config: CharacterCapabilityConfigSchema,
+  }))),
+  avatarModels: optional(array(createInsertSchema(schema.avatarModel, {
+    characterId: optional(string()),
+    type: AvatarModelTypeSchema,
+    config: AvatarModelConfigSchema,
+  }))),
+  i18n: optional(array(createInsertSchema(schema.characterI18n, {
+    characterId: optional(string()),
+    tagline: optional(string()),
+  }))),
+  prompts: optional(array(createInsertSchema(schema.characterPrompts, {
+    characterId: optional(string()),
+  }))),
+})
