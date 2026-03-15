@@ -1,17 +1,13 @@
 <script setup lang="ts">
 import type { DisplayModel } from '../../../../stores/display-models'
 
-import { Live2DScene, useLive2d } from '@proj-airi/stage-ui-live2d'
-import { ThreeScene, useModelStore } from '@proj-airi/stage-ui-three'
 import { Button, Callout } from '@proj-airi/ui'
 import { useMouse } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
-import { ref, watch } from 'vue'
-
-import Live2D from './live2d.vue'
-import VRM from './vrm.vue'
+import { defineAsyncComponent, ref, watch } from 'vue'
 
 import { DisplayModelFormat } from '../../../../stores/display-models'
+import { useLive2d } from '../../../../stores/live2d'
 import { useSettings } from '../../../../stores/settings'
 import { ModelSelectorDialog } from '../../dialogs/model-selector'
 
@@ -22,10 +18,19 @@ const props = defineProps<{
   live2dSceneClass?: string | string[]
   vrmSceneClass?: string | string[]
 }>()
-
 defineEmits<{
   (e: 'extractColorsFromModel'): void
 }>()
+const Live2D = defineAsyncComponent(() => import('./live2d.vue'))
+const VRM = defineAsyncComponent(() => import('./vrm.vue'))
+const Live2DScene = defineAsyncComponent(async () => {
+  const module = await import('@proj-airi/stage-ui-live2d')
+  return module.Live2DScene
+})
+const ThreeScene = defineAsyncComponent(async () => {
+  const module = await import('@proj-airi/stage-ui-three')
+  return module.ThreeScene
+})
 
 const selectedModel = ref<DisplayModel | undefined>()
 
@@ -53,10 +58,10 @@ watch(selectedModel, async () => {
   if (selectedModel.value) {
     switch (selectedModel.value.format) {
       case DisplayModelFormat.Live2dZip:
-        useLive2d().shouldUpdateView()
+        ;(await import('../../../../stores/live2d')).useLive2d().shouldUpdateView()
         break
       case DisplayModelFormat.VRM:
-        useModelStore().shouldUpdateView()
+        ;(await import('@proj-airi/stage-ui-three')).useModelStore().shouldUpdateView()
         break
     }
   }

@@ -1,14 +1,9 @@
 import localforage from 'localforage'
 
-import { loadLive2DModelPreview as generateLive2DPreview } from '@proj-airi/stage-ui-live2d/utils/live2d-preview'
-import { loadVrmModelPreview as generateVrmPreview } from '@proj-airi/stage-ui-three/utils/vrm-preview'
 import { until } from '@vueuse/core'
 import { nanoid } from 'nanoid'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-
-import '@proj-airi/stage-ui-live2d/utils/live2d-zip-loader'
-import '@proj-airi/stage-ui-live2d/utils/live2d-opfs-registration'
 
 export enum DisplayModelFormat {
   Live2dZip = 'live2d-zip',
@@ -95,10 +90,16 @@ export const useDisplayModelsStore = defineStore('display-models', () => {
     return displayModelsPresets.find(model => model.id === id)
   }
 
-  const loadLive2DModelPreview = (file: File) => generateLive2DPreview(file)
+  async function loadLive2DModelPreview(file: File) {
+    await import('@proj-airi/stage-ui-live2d/utils/live2d-zip-loader')
+    await import('@proj-airi/stage-ui-live2d/utils/live2d-opfs-registration')
+    const module = await import('@proj-airi/stage-ui-live2d/utils/live2d-preview')
+    return module.loadLive2DModelPreview(file)
+  }
 
   async function loadVrmModelPreview(file: File) {
-    return generateVrmPreview(file)
+    const module = await import('@proj-airi/stage-ui-three/utils/vrm-preview')
+    return module.loadVrmModelPreview(file)
   }
 
   async function addDisplayModel(format: DisplayModelFormat, file: File) {
