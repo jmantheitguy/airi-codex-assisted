@@ -20,9 +20,10 @@ export function toSignedPercent(value: number): string {
   return '0%'
 }
 
-const DEFAULT_SPEECH_PROVIDER = 'browser-local-audio-speech'
-const DEFAULT_SPEECH_MODEL = 'q4f16'
-const DEFAULT_SPEECH_VOICE_ID = 'af_bella'
+const DEFAULT_SPEECH_PROVIDER = 'openai-audio-speech'
+const DEFAULT_SPEECH_MODEL = 'gpt-4o-mini-tts'
+const DEFAULT_SPEECH_VOICE_ID = 'alloy'
+const LOCAL_SPEECH_PROVIDERS = new Set(['browser-local-audio-speech'])
 
 export const useSpeechStore = defineStore('speech', () => {
   const providersStore = useProvidersStore()
@@ -128,8 +129,11 @@ export const useSpeechStore = defineStore('speech', () => {
     immediate: true,
   })
 
-  if (!activeSpeechProvider.value || activeSpeechProvider.value === 'speech-noop') {
+  if (!activeSpeechProvider.value || activeSpeechProvider.value === 'speech-noop' || LOCAL_SPEECH_PROVIDERS.has(activeSpeechProvider.value)) {
     activeSpeechProvider.value = DEFAULT_SPEECH_PROVIDER
+    activeSpeechModel.value = DEFAULT_SPEECH_MODEL
+    activeSpeechVoiceId.value = DEFAULT_SPEECH_VOICE_ID
+    activeSpeechVoice.value = undefined
   }
 
   if (!activeSpeechModel.value) {

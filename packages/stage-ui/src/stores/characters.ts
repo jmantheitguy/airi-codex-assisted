@@ -111,12 +111,12 @@ function buildAiriCardFromCharacter(character: Character): AiriCard {
       airi: {
         modules: {
           consciousness: {
-            provider: 'openai-compatible',
+            provider: 'openai',
             model: llmCapability?.config.llm?.model ?? '',
           },
           speech: {
-            provider: 'browser-local-audio-speech',
-            model: '',
+            provider: 'openai-audio-speech',
+            model: 'gpt-4o-mini-tts',
             voice_id: ttsCapability?.config.tts?.voiceId ?? '',
             pitch: ttsCapability?.config.tts?.pitch,
             rate: ttsCapability?.config.tts?.speed,

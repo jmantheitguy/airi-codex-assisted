@@ -5,12 +5,16 @@ import { computed } from 'vue'
 
 import { useProvidersStore } from '../providers'
 
+const DEFAULT_CHAT_PROVIDER = 'openai'
+const DEFAULT_CHAT_MODEL = 'gpt-4o'
+const LOCAL_CHAT_PROVIDERS = new Set(['ollama'])
+
 export const useConsciousnessStore = defineStore('consciousness', () => {
   const providersStore = useProvidersStore()
 
   // State
-  const activeProvider = useLocalStorageManualReset<string>('settings/consciousness/active-provider', '')
-  const activeModel = useLocalStorageManualReset<string>('settings/consciousness/active-model', '')
+  const activeProvider = useLocalStorageManualReset<string>('settings/consciousness/active-provider', DEFAULT_CHAT_PROVIDER)
+  const activeModel = useLocalStorageManualReset<string>('settings/consciousness/active-model', DEFAULT_CHAT_MODEL)
   const activeCustomModelName = useLocalStorageManualReset<string>('settings/consciousness/active-custom-model', '')
   const expandedDescriptions = refManualReset<Record<string, boolean>>(() => ({}))
   const modelSearchQuery = refManualReset<string>('')
@@ -69,6 +73,15 @@ export const useConsciousnessStore = defineStore('consciousness', () => {
   const configured = computed(() => {
     return !!activeProvider.value && !!activeModel.value
   })
+
+  if (!activeProvider.value || LOCAL_CHAT_PROVIDERS.has(activeProvider.value)) {
+    activeProvider.value = DEFAULT_CHAT_PROVIDER
+    activeModel.value = DEFAULT_CHAT_MODEL
+  }
+
+  if (!activeModel.value) {
+    activeModel.value = DEFAULT_CHAT_MODEL
+  }
 
   function resetState() {
     activeProvider.reset()
