@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import type { PerceptionState } from '@proj-airi/model-driver-mediapipe'
-import type { VisionCaptureSource } from '@proj-airi/stage-ui/stores/modules'
 
-import { createMediaPipeBackend, createMocapEngine, drawOverlay } from '@proj-airi/model-driver-mediapipe'
+import { drawOverlay } from '@proj-airi/model-driver-mediapipe'
+import { useChatVisionRuntimeStore } from '@proj-airi/stage-ui/stores/chat/vision-runtime'
 import { useVisionStore } from '@proj-airi/stage-ui/stores/modules'
 import { Button, FieldSelect } from '@proj-airi/ui'
 import { storeToRefs } from 'pinia'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 const visionStore = useVisionStore()
+const chatVisionRuntimeStore = useChatVisionRuntimeStore()
 const {
+  activeStream,
   activeInputLabel,
   availableVideoInputs,
   captureSource,
@@ -23,6 +25,7 @@ const {
   handsEnabled,
   handsHz,
   lastError,
+  latestPerceptionState,
   minPoseVisibility,
   mirrorPreview,
   overlayEnabled,
@@ -32,10 +35,11 @@ const {
   runtimeStatus,
   selectedVideoInput,
 } = storeToRefs(visionStore)
+const { startCapture, stopCapture } = chatVisionRuntimeStore
 
 const videoRef = ref<HTMLVideoElement>()
 const canvasRef = ref<HTMLCanvasElement>()
-const latestState = ref<PerceptionState>()
+const latestState = computed<PerceptionState | undefined>(() => latestPerceptionState.value)
 
 const supportsScreenCapture = computed(() => {
   return typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getDisplayMedia === 'function'
@@ -72,28 +76,6 @@ const sourceDescription = computed(() => {
   return 'Use a camera device for local face, hands, and pose tracking.'
 })
 
-let stream: MediaStream | undefined
-let engine: ReturnType<typeof createMocapEngine> | undefined
-let trackEndedHandler: (() => void) | undefined
-let lastFrameCapturedAt = 0
-const frameCaptureCanvas = document.createElement('canvas')
-
-function currentConfig() {
-  return {
-    enabled: {
-      pose: poseEnabled.value,
-      hands: handsEnabled.value,
-      face: faceEnabled.value,
-    },
-    hz: {
-      pose: poseHz.value,
-      hands: handsHz.value,
-      face: faceHz.value,
-    },
-    maxPeople: 1 as const,
-  }
-}
-
 async function syncDeviceList() {
   try {
     await visionStore.refreshVideoInputs()
@@ -103,255 +85,62 @@ async function syncDeviceList() {
   }
 }
 
-function setRuntimeSummary(state?: PerceptionState) {
-  if (!state) {
-    visionStore.setLatestSummary(undefined)
+async function attachPreviewStream(stream?: MediaStream) {
+  if (!videoRef.value)
+    return
+
+  if (!stream) {
+    videoRef.value.srcObject = null
     return
   }
 
-  const quality = state.quality
-  visionStore.setLatestSummary({
-    inputLabel: activeInputLabel.value,
-    captureSource: captureSource.value,
-    fps: quality?.fps ?? 0,
-    latencyMs: quality?.latencyMs ?? 0,
-    droppedFrames: quality?.droppedFrames ?? 0,
-    hasFace: state.face?.hasFace ?? false,
-    handCount: state.hands?.length ?? 0,
-    posePoints: state.pose?.worldLandmarks?.filter(point => (point.visibility ?? 0) >= minPoseVisibility.value).length ?? 0,
-    lastUpdatedAt: Date.now(),
-  })
+  if (videoRef.value.srcObject !== stream) {
+    videoRef.value.srcObject = stream
+  }
+
+  await videoRef.value.play().catch(() => {})
 }
 
-function captureVisionFrame(video: HTMLVideoElement) {
-  if (!frameAttachmentEnabled.value)
+function drawPreviewOverlay(state?: PerceptionState) {
+  const canvas = canvasRef.value
+  const video = videoRef.value
+  if (!canvas || !video)
     return
 
-  const now = Date.now()
-  if (now - lastFrameCapturedAt < frameAttachmentIntervalMs.value)
-    return
+  const width = video.videoWidth || 640
+  const height = video.videoHeight || 480
+  if (canvas.width !== width)
+    canvas.width = width
+  if (canvas.height !== height)
+    canvas.height = height
 
-  const sourceWidth = video.videoWidth
-  const sourceHeight = video.videoHeight
-  if (!sourceWidth || !sourceHeight)
-    return
-
-  const maxSize = Math.max(128, Math.min(2048, frameAttachmentMaxSize.value || 512))
-  const scale = Math.min(1, maxSize / Math.max(sourceWidth, sourceHeight))
-  const width = Math.max(1, Math.round(sourceWidth * scale))
-  const height = Math.max(1, Math.round(sourceHeight * scale))
-
-  frameCaptureCanvas.width = width
-  frameCaptureCanvas.height = height
-  const context = frameCaptureCanvas.getContext('2d')
+  const context = canvas.getContext('2d')
   if (!context)
     return
 
-  context.drawImage(video, 0, 0, width, height)
-  const mimeType = 'image/jpeg'
-  const dataUrl = frameCaptureCanvas.toDataURL(mimeType, 0.72)
-  const [, data = ''] = dataUrl.split(',', 2)
-  if (!data)
-    return
-
-  lastFrameCapturedAt = now
-  visionStore.setLatestFrame({
-    data,
-    mimeType,
-    width,
-    height,
-    capturedAt: now,
-  })
-}
-
-function stopPreview(options?: { keepStatus?: boolean }) {
-  engine?.stop()
-  engine = undefined
-  latestState.value = undefined
-  setRuntimeSummary(undefined)
-  visionStore.setLatestFrame(undefined)
-  lastFrameCapturedAt = 0
-
-  const [videoTrack] = stream?.getVideoTracks() ?? []
-  if (videoTrack && trackEndedHandler) {
-    videoTrack.removeEventListener('ended', trackEndedHandler)
-  }
-  trackEndedHandler = undefined
-
-  if (stream) {
-    for (const track of stream.getTracks()) {
-      track.stop()
-    }
-  }
-
-  stream = undefined
-  visionStore.setActiveInputLabel('')
-
-  if (videoRef.value)
-    videoRef.value.srcObject = null
-
-  canvasRef.value?.getContext('2d')?.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
-  if (!options?.keepStatus) {
-    visionStore.setRuntimeStatus('idle')
-  }
-}
-
-async function requestVisionStream(source: VisionCaptureSource) {
-  if (source === 'screen') {
-    if (!supportsScreenCapture.value) {
-      throw new Error('Screen capture is not available in this browser.')
-    }
-
-    return navigator.mediaDevices.getDisplayMedia({
-      audio: false,
-      video: {
-        frameRate: { ideal: 30, max: 30 },
-      },
+  context.clearRect(0, 0, width, height)
+  if (state && overlayEnabled.value) {
+    drawOverlay(context, state, {
+      pose: poseEnabled.value,
+      hands: handsEnabled.value,
+      face: faceEnabled.value,
     })
   }
-
-  const constraints: MediaStreamConstraints = {
-    audio: false,
-    video: selectedVideoInput.value
-      ? {
-          deviceId: { ideal: selectedVideoInput.value },
-        }
-      : true,
-  }
-
-  return navigator.mediaDevices.getUserMedia(constraints)
 }
 
-async function startPreview() {
-  if (!enabled.value) {
-    stopPreview()
-    return
-  }
-
-  try {
-    stopPreview()
-    visionStore.setRuntimeStatus('starting')
-
-    stream = await requestVisionStream(captureSource.value)
-    visionStore.setPermissionState('granted')
-
-    const [track] = stream.getVideoTracks()
-    const settings = track?.getSettings()
-    const inputLabel = track?.label
-      || (captureSource.value === 'screen'
-        ? (typeof settings?.displaySurface === 'string' ? `Screen (${settings.displaySurface})` : 'Shared screen')
-        : 'Camera input')
-    visionStore.setActiveInputLabel(inputLabel)
-
-    if (captureSource.value === 'camera' && !selectedVideoInput.value && settings?.deviceId) {
-      selectedVideoInput.value = settings.deviceId
-    }
-
-    trackEndedHandler = () => {
-      stopPreview({ keepStatus: true })
-      visionStore.setRuntimeStatus('idle')
-      visionStore.setPermissionState('unknown')
-    }
-    track?.addEventListener('ended', trackEndedHandler)
-
-    if (!videoRef.value)
-      throw new Error('Vision preview is not mounted')
-
-    videoRef.value.srcObject = stream
-    await videoRef.value.play()
-
-    const backend = createMediaPipeBackend()
-    engine = createMocapEngine(backend, currentConfig())
-    await engine.init()
-    engine.start(
-      {
-        getFrame: () => videoRef.value as HTMLVideoElement,
-      },
-      (state) => {
-        latestState.value = state
-        setRuntimeSummary(state)
-
-        const canvas = canvasRef.value
-        const video = videoRef.value
-        if (!canvas || !video)
-          return
-
-        captureVisionFrame(video)
-
-        const width = video.videoWidth || 640
-        const height = video.videoHeight || 480
-        if (canvas.width !== width)
-          canvas.width = width
-        if (canvas.height !== height)
-          canvas.height = height
-
-        const context = canvas.getContext('2d')
-        if (!context)
-          return
-
-        context.clearRect(0, 0, width, height)
-        if (overlayEnabled.value) {
-          drawOverlay(context, state, {
-            pose: poseEnabled.value,
-            hands: handsEnabled.value,
-            face: faceEnabled.value,
-          })
-        }
-      },
-      {
-        onError: (error) => {
-          const message = error instanceof Error ? error.message : String(error)
-          visionStore.setRuntimeStatus('error', message)
-        },
-      },
-    )
-
-    visionStore.setRuntimeStatus('running')
-    if (captureSource.value === 'camera') {
-      await syncDeviceList()
-    }
-  }
-  catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    if (message.toLowerCase().includes('permission') || message.toLowerCase().includes('denied')) {
-      visionStore.setPermissionState('denied')
-    }
-    visionStore.setRuntimeStatus('error', message)
-    stopPreview({ keepStatus: true })
-  }
-}
-
-watch(
-  [poseEnabled, handsEnabled, faceEnabled, poseHz, handsHz, faceHz],
-  () => {
-    engine?.updateConfig(currentConfig())
-    if (latestState.value) {
-      setRuntimeSummary(latestState.value)
-    }
-  },
-  { deep: false },
-)
-
-watch([enabled, selectedVideoInput, captureSource], async ([isEnabled, deviceId, source], [wasEnabled, previousDeviceId, previousSource]) => {
-  if (!isEnabled) {
-    stopPreview()
-    return
-  }
-
-  if (!wasEnabled || deviceId !== previousDeviceId || source !== previousSource) {
-    await startPreview()
-  }
-})
+watch(activeStream, stream => attachPreviewStream(stream), { immediate: true })
+watch([latestPerceptionState, overlayEnabled, poseEnabled, handsEnabled, faceEnabled], () => drawPreviewOverlay(latestPerceptionState.value), { deep: false })
 
 onMounted(async () => {
   await syncDeviceList()
-  if (enabled.value) {
-    await startPreview()
-  }
+  await attachPreviewStream(activeStream.value)
+  drawPreviewOverlay(latestPerceptionState.value)
 })
 
 onUnmounted(() => {
-  stopPreview()
+  if (videoRef.value)
+    videoRef.value.srcObject = null
+  canvasRef.value?.getContext('2d')?.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
 })
 </script>
 

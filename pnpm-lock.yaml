@@ -2508,6 +2508,9 @@ importers:
       '@proj-airi/model-driver-lipsync':
         specifier: workspace:^
         version: link:../model-driver-lipsync
+      '@proj-airi/model-driver-mediapipe':
+        specifier: workspace:^
+        version: link:../model-driver-mediapipe
       '@proj-airi/pipelines-audio':
         specifier: workspace:^
         version: link:../pipelines-audio

@@ -1,6 +1,8 @@
+import type { PerceptionState } from '@proj-airi/model-driver-mediapipe'
+
 import { useLocalStorageManualReset } from '@proj-airi/stage-shared/composables'
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 
 export interface VisionDeviceOption {
   deviceId: string
@@ -54,6 +56,8 @@ export const useVisionStore = defineStore('vision-store', () => {
   const activeInputLabel = ref('')
   const latestSummary = ref<VisionRuntimeSummary>()
   const latestFrame = ref<VisionFrameSnapshot>()
+  const latestPerceptionState = ref<PerceptionState>()
+  const activeStream = shallowRef<MediaStream>()
 
   const configured = computed(() => {
     const hasConfiguredSource = captureSource.value === 'screen'
@@ -96,8 +100,16 @@ export const useVisionStore = defineStore('vision-store', () => {
     latestSummary.value = summary
   }
 
+  function setLatestPerceptionState(state?: PerceptionState) {
+    latestPerceptionState.value = state
+  }
+
   function setLatestFrame(frame?: VisionFrameSnapshot) {
     latestFrame.value = frame
+  }
+
+  function setActiveStream(stream?: MediaStream) {
+    activeStream.value = stream
   }
 
   async function refreshVideoInputs() {
@@ -147,6 +159,8 @@ export const useVisionStore = defineStore('vision-store', () => {
     activeInputLabel.value = ''
     latestSummary.value = undefined
     latestFrame.value = undefined
+    latestPerceptionState.value = undefined
+    activeStream.value = undefined
   }
 
   return {
@@ -173,6 +187,8 @@ export const useVisionStore = defineStore('vision-store', () => {
     activeInputLabel,
     latestSummary,
     latestFrame,
+    latestPerceptionState,
+    activeStream,
     configured,
     hasFreshSummary,
     hasFreshFrame,
@@ -180,7 +196,9 @@ export const useVisionStore = defineStore('vision-store', () => {
     setRuntimeStatus,
     setActiveInputLabel,
     setLatestSummary,
+    setLatestPerceptionState,
     setLatestFrame,
+    setActiveStream,
     refreshVideoInputs,
     resetState,
   }
