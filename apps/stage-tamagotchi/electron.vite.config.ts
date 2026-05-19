@@ -1,4 +1,5 @@
 import { join, resolve } from 'node:path'
+import { env } from 'node:process'
 
 import VueI18n from '@intlify/unplugin-vue-i18n/vite'
 import Vue from '@vitejs/plugin-vue'
@@ -142,6 +143,7 @@ export default defineConfig({
         name: 'proj-airi:defines',
         config(ctx) {
           const define: Record<string, any> = {
+            'import.meta.env.AIRI_ENABLE_STAGE_WEBGL': env.AIRI_ENABLE_STAGE_WEBGL === 'true' ? '\'true\'' : '\'false\'',
             'import.meta.env.RUNTIME_ENVIRONMENT': '\'electron\'',
           }
           if (ctx.mode === 'development') {

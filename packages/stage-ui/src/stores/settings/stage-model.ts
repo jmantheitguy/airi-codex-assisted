@@ -6,10 +6,17 @@ import { defineStore } from 'pinia'
 
 import { DisplayModelFormat, useDisplayModelsStore } from '../display-models'
 
+function shouldDisableStageWebglDefault() {
+  return import.meta.env.RUNTIME_ENVIRONMENT === 'electron'
+    && import.meta.env.AIRI_ENABLE_STAGE_WEBGL !== 'true'
+    && typeof navigator !== 'undefined'
+    && navigator.userAgent.includes('Windows')
+}
+
 export const useSettingsStageModel = defineStore('settings-stage-model', () => {
   const displayModelsStore = useDisplayModelsStore()
 
-  const stageModelSelected = useLocalStorageManualReset<string>('settings/stage/model', 'preset-live2d-1')
+  const stageModelSelected = useLocalStorageManualReset<string>('settings/stage/model', shouldDisableStageWebglDefault() ? '' : 'preset-live2d-1')
   const stageModelSelectedDisplayModel = refManualReset<DisplayModel | undefined>(undefined)
   const stageModelSelectedUrl = refManualReset<string | undefined>(undefined)
   const stageModelRenderer = refManualReset<'live2d' | 'vrm' | 'disabled' | undefined>(undefined)
@@ -59,6 +66,10 @@ export const useSettingsStageModel = defineStore('settings-stage-model', () => {
   }
 
   async function initializeStageModel() {
+    if (shouldDisableStageWebglDefault() && stageModelSelected.value) {
+      stageModelSelected.value = ''
+    }
+
     await updateStageModel()
   }
 
