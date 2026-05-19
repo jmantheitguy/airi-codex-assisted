@@ -47,6 +47,15 @@ setupDebugger()
 
 const log = useLogg('main').useGlobalConfig()
 
+// Windows Electron can hard-crash in Chromium's GPU command buffer on some driver
+// stacks. Prefer a stable software path by default; set AIRI_ENABLE_HARDWARE_ACCELERATION=true
+// before launching if you want to test GPU acceleration again.
+if (platform === 'win32' && env.AIRI_ENABLE_HARDWARE_ACCELERATION !== 'true') {
+  app.disableHardwareAcceleration()
+  app.commandLine.appendSwitch('disable-gpu')
+  app.commandLine.appendSwitch('disable-gpu-compositing')
+}
+
 // Thanks to [@blurymind](https://github.com/blurymind),
 //
 // When running Electron on Linux, navigator.gpu.requestAdapter() fails.
