@@ -11,10 +11,7 @@ import {
   useElectronMouseInWindow,
   useElectronRelativeMouse,
 } from '@proj-airi/electron-vueuse'
-import { useThreeSceneIsTransparentAtPoint } from '@proj-airi/stage-ui-three'
-import { WidgetStage } from '@proj-airi/stage-ui/components/scenes'
 import { useAudioRecorder } from '@proj-airi/stage-ui/composables/audio/audio-recorder'
-import { useCanvasPixelIsTransparentAtPoint } from '@proj-airi/stage-ui/composables/canvas-alpha'
 import { useVAD } from '@proj-airi/stage-ui/stores/ai/models/vad'
 import { useChatOrchestratorStore } from '@proj-airi/stage-ui/stores/chat'
 import { useLive2d } from '@proj-airi/stage-ui/stores/live2d'
@@ -24,7 +21,7 @@ import { useProvidersStore } from '@proj-airi/stage-ui/stores/providers'
 import { useSettings, useSettingsAudioDevice } from '@proj-airi/stage-ui/stores/settings'
 import { refDebounced, useBroadcastChannel } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
-import { computed, onUnmounted, ref, toRef, watch } from 'vue'
+import { computed, defineAsyncComponent, onUnmounted, ref, watch } from 'vue'
 
 import ControlsIsland from '../components/stage-islands/controls-island/index.vue'
 import ResourceStatusIsland from '../components/stage-islands/resource-status-island/index.vue'
@@ -33,11 +30,15 @@ import { useControlsIslandStore } from '../stores/controls-island'
 import { useWindowStore } from '../stores/window'
 
 const controlsIslandRef = ref<InstanceType<typeof ControlsIsland>>()
+const WidgetStage = defineAsyncComponent(() => import('../../../../../packages/stage-ui/src/components/scenes/Stage.vue'))
 const widgetStageRef = ref<InstanceType<typeof WidgetStage>>()
-const stageCanvas = toRef(() => widgetStageRef.value?.canvasElement())
 const componentStateStage = ref<'pending' | 'loading' | 'mounted'>('pending')
 
-const isLoading = ref(true)
+const isStageWebglDisabled = import.meta.env.AIRI_ENABLE_STAGE_WEBGL !== 'true'
+  && typeof navigator !== 'undefined'
+  && navigator.userAgent.includes('Windows')
+
+const isLoading = ref(!isStageWebglDisabled)
 
 const isIgnoringMouseEvents = ref(false)
 const shouldFadeOnCursorWithin = ref(false)
@@ -46,30 +47,12 @@ const { isOutside: isOutsideWindow } = useElectronMouseInWindow()
 const { isOutside } = useElectronMouseInElement(controlsIslandRef)
 const isOutsideFor250Ms = refDebounced(isOutside, 250)
 const { x: relativeMouseX, y: relativeMouseY } = useElectronRelativeMouse()
-// NOTICE: In real-world use cases of Fade on Hover feature, the cursor may move around the edge of the
-// model rapidly, causing flickering effects when checking pixel transparency strictly.
-// Here we use render-target pixel sampling to keep detection aligned with the actual render output.
-const isTransparentByPixels = useCanvasPixelIsTransparentAtPoint(
-  stageCanvas,
-  relativeMouseX,
-  relativeMouseY,
-  { regionRadius: 25 },
-)
-const isTransparentByThree = useThreeSceneIsTransparentAtPoint(
-  widgetStageRef,
-  relativeMouseX,
-  relativeMouseY,
-  { regionRadius: 25 },
-)
-
 const { stageModelRenderer } = storeToRefs(useSettings())
 const isTransparent = computed(() => {
-  if (stageModelRenderer.value === 'vrm')
-    return isTransparentByThree.value
-
-  if (stageModelRenderer.value === 'live2d')
-    return isTransparentByPixels.value
-
+  void widgetStageRef.value
+  void relativeMouseX.value
+  void relativeMouseY.value
+  void stageModelRenderer.value
   return true
 })
 
@@ -82,7 +65,7 @@ const { scale, positionInPercentageString } = storeToRefs(useLive2d())
 const { live2dLookAtX, live2dLookAtY } = storeToRefs(useWindowStore())
 const { fadeOnHoverEnabled } = storeToRefs(useControlsIslandStore())
 
-watch(componentStateStage, () => isLoading.value = componentStateStage.value !== 'mounted', { immediate: true })
+watch(componentStateStage, () => isLoading.value = !isStageWebglDisabled && componentStateStage.value !== 'mounted', { immediate: true })
 
 const { pause, resume } = watch(isTransparent, (transparent) => {
   shouldFadeOnCursorWithin.value = fadeOnHoverEnabled.value && !transparent
@@ -340,7 +323,12 @@ watch([stream, () => vadLoaded.value], async ([s, loaded]) => {
         ]"
       >
         <ResourceStatusIsland />
+        <div
+          v-if="isStageWebglDisabled"
+          class="absolute inset-0 select-none drag-region"
+        />
         <WidgetStage
+          v-else
           ref="widgetStageRef"
           v-model:state="componentStateStage"
           h-full w-full
