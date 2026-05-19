@@ -46,46 +46,46 @@ describe('speech store helpers', () => {
   })
 })
 
-describe('openAI provider defaults', () => {
+describe('local provider defaults', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
   })
 
-  it('migrates persisted Ollama chat selection to OpenAI', () => {
+  it('migrates persisted OpenAI chat selection to Ollama', () => {
     vi.stubGlobal('localStorage', createLocalStorageMock({
-      'settings/consciousness/active-provider': 'ollama',
-      'settings/consciousness/active-model': 'gpt-oss:20b',
+      'settings/consciousness/active-provider': 'openai',
+      'settings/consciousness/active-model': 'gpt-4o',
     }))
 
     const store = useConsciousnessStore()
 
-    expect(store.activeProvider).toBe('openai')
-    expect(store.activeModel).toBe('gpt-4o')
+    expect(store.activeProvider).toBe('ollama')
+    expect(store.activeModel).toBe('llama3.2-vision')
   })
 
-  it('migrates browser-local speech selection to OpenAI speech', () => {
+  it('migrates OpenAI speech selection to browser-local speech', () => {
     vi.stubGlobal('localStorage', createLocalStorageMock({
-      'settings/speech/active-provider': 'browser-local-audio-speech',
-      'settings/speech/active-model': 'q4f16',
-      'settings/speech/voice': 'af_bella',
+      'settings/speech/active-provider': 'openai-audio-speech',
+      'settings/speech/active-model': 'gpt-4o-mini-tts',
+      'settings/speech/voice': 'alloy',
     }))
 
     const store = useSpeechStore()
 
-    expect(store.activeSpeechProvider).toBe('openai-audio-speech')
-    expect(store.activeSpeechModel).toBe('gpt-4o-mini-tts')
-    expect(store.activeSpeechVoiceId).toBe('alloy')
+    expect(store.activeSpeechProvider).toBe('browser-local-audio-speech')
+    expect(store.activeSpeechModel).toBe('q4f16')
+    expect(store.activeSpeechVoiceId).toBe('af_bella')
   })
 
-  it('migrates browser-local transcription selection to OpenAI transcription', () => {
+  it('migrates OpenAI transcription selection to browser-local transcription', () => {
     vi.stubGlobal('localStorage', createLocalStorageMock({
-      'settings/hearing/active-provider': 'browser-local-audio-transcription',
-      'settings/hearing/active-model': 'browser-local-whisper',
+      'settings/hearing/active-provider': 'openai-audio-transcription',
+      'settings/hearing/active-model': 'gpt-4o-transcribe',
     }))
 
     const store = useHearingStore()
 
-    expect(store.activeTranscriptionProvider).toBe('openai-audio-transcription')
-    expect(store.activeTranscriptionModel).toBe('gpt-4o-transcribe')
+    expect(store.activeTranscriptionProvider).toBe('browser-local-audio-transcription')
+    expect(store.activeTranscriptionModel).toBe('browser-local-whisper')
   })
 })

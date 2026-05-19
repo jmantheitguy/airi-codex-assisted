@@ -21,6 +21,14 @@ export interface VisionRuntimeSummary {
   lastUpdatedAt: number
 }
 
+export interface VisionFrameSnapshot {
+  data: string
+  mimeType: string
+  width: number
+  height: number
+  capturedAt: number
+}
+
 export const useVisionStore = defineStore('vision-store', () => {
   const enabled = useLocalStorageManualReset<boolean>('settings/vision/enabled', false)
   const captureSource = useLocalStorageManualReset<VisionCaptureSource>('settings/vision/capture-source', 'camera')
@@ -35,6 +43,9 @@ export const useVisionStore = defineStore('vision-store', () => {
   const faceHz = useLocalStorageManualReset<number>('settings/vision/face-hz', 18)
   const minPoseVisibility = useLocalStorageManualReset<number>('settings/vision/min-pose-visibility', 0.5)
   const contextInjectionEnabled = useLocalStorageManualReset<boolean>('settings/vision/context-injection-enabled', true)
+  const frameAttachmentEnabled = useLocalStorageManualReset<boolean>('settings/vision/frame-attachment-enabled', false)
+  const frameAttachmentMaxSize = useLocalStorageManualReset<number>('settings/vision/frame-attachment-max-size', 512)
+  const frameAttachmentIntervalMs = useLocalStorageManualReset<number>('settings/vision/frame-attachment-interval-ms', 5000)
 
   const permissionState = ref<'unknown' | 'granted' | 'denied'>('unknown')
   const runtimeStatus = ref<'idle' | 'starting' | 'running' | 'error'>('idle')
@@ -42,6 +53,7 @@ export const useVisionStore = defineStore('vision-store', () => {
   const availableVideoInputs = ref<VisionDeviceOption[]>([])
   const activeInputLabel = ref('')
   const latestSummary = ref<VisionRuntimeSummary>()
+  const latestFrame = ref<VisionFrameSnapshot>()
 
   const configured = computed(() => {
     const hasConfiguredSource = captureSource.value === 'screen'
@@ -59,6 +71,14 @@ export const useVisionStore = defineStore('vision-store', () => {
     return Date.now() - latestSummary.value.lastUpdatedAt < 15_000
   })
 
+  const hasFreshFrame = computed(() => {
+    if (!latestFrame.value) {
+      return false
+    }
+
+    return Date.now() - latestFrame.value.capturedAt < Math.max(frameAttachmentIntervalMs.value * 2, 15_000)
+  })
+
   function setPermissionState(next: 'unknown' | 'granted' | 'denied') {
     permissionState.value = next
   }
@@ -74,6 +94,10 @@ export const useVisionStore = defineStore('vision-store', () => {
 
   function setLatestSummary(summary?: VisionRuntimeSummary) {
     latestSummary.value = summary
+  }
+
+  function setLatestFrame(frame?: VisionFrameSnapshot) {
+    latestFrame.value = frame
   }
 
   async function refreshVideoInputs() {
@@ -113,12 +137,16 @@ export const useVisionStore = defineStore('vision-store', () => {
     faceHz.reset()
     minPoseVisibility.reset()
     contextInjectionEnabled.reset()
+    frameAttachmentEnabled.reset()
+    frameAttachmentMaxSize.reset()
+    frameAttachmentIntervalMs.reset()
     permissionState.value = 'unknown'
     runtimeStatus.value = 'idle'
     lastError.value = ''
     availableVideoInputs.value = []
     activeInputLabel.value = ''
     latestSummary.value = undefined
+    latestFrame.value = undefined
   }
 
   return {
@@ -135,18 +163,24 @@ export const useVisionStore = defineStore('vision-store', () => {
     faceHz,
     minPoseVisibility,
     contextInjectionEnabled,
+    frameAttachmentEnabled,
+    frameAttachmentMaxSize,
+    frameAttachmentIntervalMs,
     permissionState,
     runtimeStatus,
     lastError,
     availableVideoInputs,
     activeInputLabel,
     latestSummary,
+    latestFrame,
     configured,
     hasFreshSummary,
+    hasFreshFrame,
     setPermissionState,
     setRuntimeStatus,
     setActiveInputLabel,
     setLatestSummary,
+    setLatestFrame,
     refreshVideoInputs,
     resetState,
   }

@@ -17,6 +17,9 @@ const {
   enabled,
   faceEnabled,
   faceHz,
+  frameAttachmentEnabled,
+  frameAttachmentIntervalMs,
+  frameAttachmentMaxSize,
   handsEnabled,
   handsHz,
   lastError,
@@ -72,6 +75,8 @@ const sourceDescription = computed(() => {
 let stream: MediaStream | undefined
 let engine: ReturnType<typeof createMocapEngine> | undefined
 let trackEndedHandler: (() => void) | undefined
+let lastFrameCapturedAt = 0
+const frameCaptureCanvas = document.createElement('canvas')
 
 function currentConfig() {
   return {
@@ -118,11 +123,54 @@ function setRuntimeSummary(state?: PerceptionState) {
   })
 }
 
+function captureVisionFrame(video: HTMLVideoElement) {
+  if (!frameAttachmentEnabled.value)
+    return
+
+  const now = Date.now()
+  if (now - lastFrameCapturedAt < frameAttachmentIntervalMs.value)
+    return
+
+  const sourceWidth = video.videoWidth
+  const sourceHeight = video.videoHeight
+  if (!sourceWidth || !sourceHeight)
+    return
+
+  const maxSize = Math.max(128, Math.min(2048, frameAttachmentMaxSize.value || 512))
+  const scale = Math.min(1, maxSize / Math.max(sourceWidth, sourceHeight))
+  const width = Math.max(1, Math.round(sourceWidth * scale))
+  const height = Math.max(1, Math.round(sourceHeight * scale))
+
+  frameCaptureCanvas.width = width
+  frameCaptureCanvas.height = height
+  const context = frameCaptureCanvas.getContext('2d')
+  if (!context)
+    return
+
+  context.drawImage(video, 0, 0, width, height)
+  const mimeType = 'image/jpeg'
+  const dataUrl = frameCaptureCanvas.toDataURL(mimeType, 0.72)
+  const [, data = ''] = dataUrl.split(',', 2)
+  if (!data)
+    return
+
+  lastFrameCapturedAt = now
+  visionStore.setLatestFrame({
+    data,
+    mimeType,
+    width,
+    height,
+    capturedAt: now,
+  })
+}
+
 function stopPreview(options?: { keepStatus?: boolean }) {
   engine?.stop()
   engine = undefined
   latestState.value = undefined
   setRuntimeSummary(undefined)
+  visionStore.setLatestFrame(undefined)
+  lastFrameCapturedAt = 0
 
   const [videoTrack] = stream?.getVideoTracks() ?? []
   if (videoTrack && trackEndedHandler) {
@@ -228,6 +276,8 @@ async function startPreview() {
         if (!canvas || !video)
           return
 
+        captureVisionFrame(video)
+
         const width = video.videoWidth || 640
         const height = video.videoHeight || 480
         if (canvas.width !== width)
@@ -330,6 +380,24 @@ onUnmounted(() => {
             Stop preview
           </Button>
         </div>
+      </div>
+
+      <div class="grid mb-4 gap-3 rounded-xl bg-neutral-50 p-4 text-sm md:grid-cols-3 dark:bg-neutral-950/60">
+        <label class="flex items-center gap-2 text-neutral-700 dark:text-neutral-200">
+          <input v-model="frameAttachmentEnabled" type="checkbox" class="h-4 w-4 border-neutral-300 rounded">
+          Send latest frame to chat
+        </label>
+        <label class="flex flex-col gap-1 text-neutral-600 dark:text-neutral-300">
+          <span>Max image size</span>
+          <input v-model.number="frameAttachmentMaxSize" type="number" min="128" max="2048" step="64" class="border border-neutral-200 rounded-lg bg-white px-3 py-2 dark:border-neutral-800 dark:bg-neutral-900">
+        </label>
+        <label class="flex flex-col gap-1 text-neutral-600 dark:text-neutral-300">
+          <span>Capture interval (ms)</span>
+          <input v-model.number="frameAttachmentIntervalMs" type="number" min="1000" max="60000" step="1000" class="border border-neutral-200 rounded-lg bg-white px-3 py-2 dark:border-neutral-800 dark:bg-neutral-900">
+        </label>
+        <p class="text-xs text-neutral-500 md:col-span-3 dark:text-neutral-400">
+          Frames are attached to messages sent through the active chat provider. Use a local vision model to keep these requests local.
+        </p>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]">

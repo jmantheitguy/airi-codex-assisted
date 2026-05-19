@@ -16,7 +16,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
 
   // Check if any essential provider is configured
   const hasEssentialProviderConfigured = computed(() => {
-    const essentialProviders = ['openai', 'anthropic', 'google-generative-ai', 'openrouter-ai', 'deepseek', 'openai-compatible']
+    const essentialProviders = ['ollama', 'openai', 'anthropic', 'google-generative-ai', 'openrouter-ai', 'deepseek', 'openai-compatible']
     return essentialProviders.some(providerId => providersStore.configuredProviders[providerId])
   })
 

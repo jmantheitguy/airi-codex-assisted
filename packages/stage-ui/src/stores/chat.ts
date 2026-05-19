@@ -20,6 +20,7 @@ import { useChatSessionStore } from './chat/session-store'
 import { useChatStreamStore } from './chat/stream-store'
 import { useLLM } from './llm'
 import { useConsciousnessStore } from './modules/consciousness'
+import { useVisionStore } from './modules/vision'
 
 interface SendOptions {
   model: string
@@ -52,6 +53,7 @@ interface QueuedSend {
 export const useChatOrchestratorStore = defineStore('chat-orchestrator', () => {
   const llmStore = useLLM()
   const consciousnessStore = useConsciousnessStore()
+  const visionStore = useVisionStore()
   const { activeProvider } = storeToRefs(consciousnessStore)
   const { trackFirstMessage } = useAnalytics()
 
@@ -157,6 +159,22 @@ export const useChatOrchestratorStore = defineStore('chat-orchestrator', () => {
         }
       }
 
+      if (
+        visionStore.enabled
+        && visionStore.frameAttachmentEnabled
+        && visionStore.runtimeStatus === 'running'
+        && visionStore.hasFreshFrame
+        && visionStore.latestFrame
+      ) {
+        const frame = visionStore.latestFrame
+        contentParts.push({
+          type: 'image_url',
+          image_url: {
+            url: `data:${frame.mimeType};base64,${frame.data}`,
+          },
+        })
+      }
+
       const finalContent = contentParts.length > 1 ? contentParts : sendingMessage
       if (!streamingMessageContext.input) {
         streamingMessageContext.input = {
@@ -174,7 +192,7 @@ export const useChatOrchestratorStore = defineStore('chat-orchestrator', () => {
       if (!sessionMessagesForSend) {
         throw new Error('Session messages not found')
       }
-      sessionMessagesForSend.push({ role: 'user', content: finalContent, createdAt: sendingCreatedAt, id: nanoid() })
+      sessionMessagesForSend.push({ role: 'user', content: sendingMessage, createdAt: sendingCreatedAt, id: nanoid() })
       chatSession.persistSessionMessages(sessionId)
 
       const categorizer = createStreamingCategorizer(activeProvider.value)
@@ -259,6 +277,11 @@ export const useChatOrchestratorStore = defineStore('chat-orchestrator', () => {
 
         return rawMessage
       })
+
+      const currentUserMessage = newMessages.at(-1)
+      if (currentUserMessage?.role === 'user') {
+        currentUserMessage.content = finalContent
+      }
 
       const contextsSnapshot = chatContext.getContextsSnapshot()
       if (Object.keys(contextsSnapshot).length > 0) {

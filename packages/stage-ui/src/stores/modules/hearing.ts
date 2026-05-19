@@ -51,9 +51,9 @@ interface HearingTranscriptionInvokeOptions {
   providerOptions?: Record<string, unknown>
 }
 
-const DEFAULT_HEARING_PROVIDER = 'openai-audio-transcription'
-const DEFAULT_HEARING_MODEL = 'gpt-4o-transcribe'
-const LOCAL_HEARING_PROVIDERS = new Set(['browser-local-audio-transcription'])
+const DEFAULT_HEARING_PROVIDER = 'browser-local-audio-transcription'
+const DEFAULT_HEARING_MODEL = 'browser-local-whisper'
+const REMOTE_HEARING_PROVIDERS = new Set(['openai-audio-transcription', 'openai-compatible-audio-transcription'])
 
 const STREAM_TRANSCRIPTION_EXECUTORS: Record<string, StreamTranscription> = {
   'aliyun-nls-transcription': streamAliyunTranscription,
@@ -135,7 +135,7 @@ export const useHearingStore = defineStore('hearing-store', () => {
     autoSendDelay.reset()
   }
 
-  if (!activeTranscriptionProvider.value || LOCAL_HEARING_PROVIDERS.has(activeTranscriptionProvider.value)) {
+  if (!activeTranscriptionProvider.value || REMOTE_HEARING_PROVIDERS.has(activeTranscriptionProvider.value)) {
     activeTranscriptionProvider.value = DEFAULT_HEARING_PROVIDER
     activeTranscriptionModel.value = DEFAULT_HEARING_MODEL
   }
