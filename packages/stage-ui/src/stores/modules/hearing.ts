@@ -11,6 +11,7 @@ import { computed, ref, shallowRef } from 'vue'
 
 import vadWorkletUrl from '../../workers/vad/process.worklet?worker&url'
 
+import { LOCAL_TRANSCRIPTION_MODEL } from '../../constants/local-models'
 import { useProvidersStore } from '../providers'
 import { streamAliyunTranscription } from '../providers/aliyun/stream-transcription'
 import { streamBrowserLocalTranscription } from '../providers/browser-local-stream-transcription'
@@ -52,7 +53,7 @@ interface HearingTranscriptionInvokeOptions {
 }
 
 const DEFAULT_HEARING_PROVIDER = 'browser-local-audio-transcription'
-const DEFAULT_HEARING_MODEL = 'browser-local-whisper'
+const DEFAULT_HEARING_MODEL = LOCAL_TRANSCRIPTION_MODEL
 const REMOTE_HEARING_PROVIDERS = new Set(['openai-audio-transcription', 'openai-compatible-audio-transcription'])
 
 const STREAM_TRANSCRIPTION_EXECUTORS: Record<string, StreamTranscription> = {

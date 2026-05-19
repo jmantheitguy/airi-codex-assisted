@@ -1,6 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { LOCAL_OLLAMA_VISION_MODEL, LOCAL_SPEECH_MODEL, LOCAL_SPEECH_VOICE_ID, LOCAL_TRANSCRIPTION_MODEL } from '../../constants/local-models'
 import { useConsciousnessStore } from './consciousness'
 import { useHearingStore } from './hearing'
 import { toSignedPercent, useSpeechStore } from './speech'
@@ -60,7 +61,7 @@ describe('local provider defaults', () => {
     const store = useConsciousnessStore()
 
     expect(store.activeProvider).toBe('ollama')
-    expect(store.activeModel).toBe('llama3.2-vision')
+    expect(store.activeModel).toBe(LOCAL_OLLAMA_VISION_MODEL)
   })
 
   it('migrates OpenAI speech selection to browser-local speech', () => {
@@ -73,8 +74,8 @@ describe('local provider defaults', () => {
     const store = useSpeechStore()
 
     expect(store.activeSpeechProvider).toBe('browser-local-audio-speech')
-    expect(store.activeSpeechModel).toBe('q4f16')
-    expect(store.activeSpeechVoiceId).toBe('af_bella')
+    expect(store.activeSpeechModel).toBe(LOCAL_SPEECH_MODEL)
+    expect(store.activeSpeechVoiceId).toBe(LOCAL_SPEECH_VOICE_ID)
   })
 
   it('migrates OpenAI transcription selection to browser-local transcription', () => {
@@ -86,6 +87,6 @@ describe('local provider defaults', () => {
     const store = useHearingStore()
 
     expect(store.activeTranscriptionProvider).toBe('browser-local-audio-transcription')
-    expect(store.activeTranscriptionModel).toBe('browser-local-whisper')
+    expect(store.activeTranscriptionModel).toBe(LOCAL_TRANSCRIPTION_MODEL)
   })
 })

@@ -9,6 +9,7 @@ import { ref } from 'vue'
 
 import { client } from '../composables/api'
 import { useLocalFirstRequest } from '../composables/use-local-first'
+import { LOCAL_OLLAMA_VISION_MODEL, LOCAL_SPEECH_MODEL, LOCAL_SPEECH_VOICE_ID } from '../constants/local-models'
 import { charactersRepo } from '../database/repos/characters.repo'
 import { CharacterWithRelationsSchema } from '../types/character'
 import { useAuthStore } from './auth'
@@ -112,12 +113,12 @@ function buildAiriCardFromCharacter(character: Character): AiriCard {
         modules: {
           consciousness: {
             provider: 'ollama',
-            model: llmCapability?.config.llm?.model ?? 'llama3.2-vision',
+            model: llmCapability?.config.llm?.model ?? LOCAL_OLLAMA_VISION_MODEL,
           },
           speech: {
             provider: 'browser-local-audio-speech',
-            model: 'q4f16',
-            voice_id: ttsCapability?.config.tts?.voiceId ?? 'af_bella',
+            model: LOCAL_SPEECH_MODEL,
+            voice_id: ttsCapability?.config.tts?.voiceId ?? LOCAL_SPEECH_VOICE_ID,
             pitch: ttsCapability?.config.tts?.pitch,
             rate: ttsCapability?.config.tts?.speed,
           },

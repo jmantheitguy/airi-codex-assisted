@@ -10,6 +10,7 @@ import { computed, onMounted, watch } from 'vue'
 import { toXml } from 'xast-util-to-xml'
 import { x } from 'xastscript'
 
+import { LOCAL_SPEECH_MODEL, LOCAL_SPEECH_VOICE_ID } from '../../constants/local-models'
 import { useProvidersStore } from '../providers'
 
 export function toSignedPercent(value: number): string {
@@ -21,8 +22,8 @@ export function toSignedPercent(value: number): string {
 }
 
 const DEFAULT_SPEECH_PROVIDER = 'browser-local-audio-speech'
-const DEFAULT_SPEECH_MODEL = 'q4f16'
-const DEFAULT_SPEECH_VOICE_ID = 'af_bella'
+const DEFAULT_SPEECH_MODEL = LOCAL_SPEECH_MODEL
+const DEFAULT_SPEECH_VOICE_ID = LOCAL_SPEECH_VOICE_ID
 const REMOTE_SPEECH_PROVIDERS = new Set(['openai-audio-speech', 'openai-compatible-audio-speech'])
 
 export const useSpeechStore = defineStore('speech', () => {

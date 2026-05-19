@@ -3,10 +3,11 @@ import { refManualReset } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { computed } from 'vue'
 
+import { LOCAL_OLLAMA_VISION_MODEL } from '../../constants/local-models'
 import { useProvidersStore } from '../providers'
 
 const DEFAULT_CHAT_PROVIDER = 'ollama'
-const DEFAULT_CHAT_MODEL = 'llama3.2-vision'
+const DEFAULT_CHAT_MODEL = LOCAL_OLLAMA_VISION_MODEL
 const REMOTE_CHAT_PROVIDERS = new Set(['openai', 'anthropic', 'google-generative-ai', 'openrouter-ai', 'deepseek', 'openai-compatible'])
 
 export const useConsciousnessStore = defineStore('consciousness', () => {
