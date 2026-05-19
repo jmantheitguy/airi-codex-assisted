@@ -18,6 +18,7 @@ export const useChatVisionRuntimeStore = defineStore('chat-vision-runtime', () =
   let stream: MediaStream | undefined
   let engine: ReturnType<typeof createMocapEngine> | undefined
   let trackEndedHandler: (() => void) | undefined
+  let frameCaptureInterval: ReturnType<typeof setInterval> | undefined
   let lastFrameCapturedAt = 0
   const video = typeof document !== 'undefined' ? document.createElement('video') : undefined
   const frameCaptureCanvas = typeof document !== 'undefined' ? document.createElement('canvas') : undefined
@@ -107,6 +108,10 @@ export const useChatVisionRuntimeStore = defineStore('chat-vision-runtime', () =
   function stopCapture(options?: { keepStatus?: boolean }) {
     engine?.stop()
     engine = undefined
+    if (frameCaptureInterval) {
+      clearInterval(frameCaptureInterval)
+      frameCaptureInterval = undefined
+    }
     visionStore.setLatestPerceptionState(undefined)
     visionStore.setLatestSummary(undefined)
     visionStore.setLatestFrame(undefined)
@@ -200,6 +205,8 @@ export const useChatVisionRuntimeStore = defineStore('chat-vision-runtime', () =
 
       video.srcObject = stream
       await video.play()
+      captureVisionFrame()
+      frameCaptureInterval = setInterval(captureVisionFrame, 500)
 
       const backend = createMediaPipeBackend()
       engine = createMocapEngine(backend, currentConfig())
@@ -211,7 +218,6 @@ export const useChatVisionRuntimeStore = defineStore('chat-vision-runtime', () =
         (state: PerceptionState) => {
           visionStore.setLatestPerceptionState(state)
           setRuntimeSummary(state)
-          captureVisionFrame()
         },
         {
           onError: (error: unknown) => {

@@ -145,6 +145,7 @@ export const useChatOrchestratorStore = defineStore('chat-orchestrator', () => {
       await hooks.emitBeforeMessageComposedHooks(sendingMessage, streamingMessageContext)
 
       const contentParts: CommonContentPart[] = [{ type: 'text', text: sendingMessage }]
+      let attachedVisionFrame = false
 
       if (options.attachments) {
         for (const attachment of options.attachments) {
@@ -167,15 +168,41 @@ export const useChatOrchestratorStore = defineStore('chat-orchestrator', () => {
         && visionStore.latestFrame
       ) {
         const frame = visionStore.latestFrame
+        const frameAgeMs = Date.now() - frame.capturedAt
+        contentParts[0] = {
+          type: 'text',
+          text: `${sendingMessage}\n\n[Vision attachment: a fresh ${frame.width}x${frame.height} ${visionStore.captureSource === 'screen' ? 'screen-share' : 'camera'} frame captured ${Math.round(frameAgeMs / 1000)} seconds ago is attached to this message. Use the attached image as the primary source for what the user is seeing.]`,
+        }
         contentParts.push({
           type: 'image_url',
           image_url: {
             url: `data:${frame.mimeType};base64,${frame.data}`,
           },
         })
+        attachedVisionFrame = true
+        console.info('[Vision] Attached frame to chat message', {
+          ageMs: frameAgeMs,
+          captureSource: visionStore.captureSource,
+          height: frame.height,
+          mimeType: frame.mimeType,
+          width: frame.width,
+        })
+      }
+      else if (visionStore.enabled && visionStore.frameAttachmentEnabled) {
+        contentParts[0] = {
+          type: 'text',
+          text: `${sendingMessage}\n\n[Vision attachment unavailable: AIRI vision is enabled, but no fresh screen/camera frame was available for this message. Do not infer exact on-screen content unless an image is attached.]`,
+        }
+        console.warn('[Vision] No fresh frame available for chat message', {
+          hasFrame: !!visionStore.latestFrame,
+          hasFreshFrame: visionStore.hasFreshFrame,
+          runtimeStatus: visionStore.runtimeStatus,
+        })
       }
 
-      const finalContent = contentParts.length > 1 ? contentParts : sendingMessage
+      const finalContent = contentParts.length > 1 || attachedVisionFrame || (visionStore.enabled && visionStore.frameAttachmentEnabled)
+        ? contentParts
+        : sendingMessage
       if (!streamingMessageContext.input) {
         streamingMessageContext.input = {
           type: 'input:text',
