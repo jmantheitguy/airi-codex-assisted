@@ -16,6 +16,7 @@ interface OpenAICompatibleValidationOptions<TConfig extends { apiKey?: string, b
   checks?: OpenAICompatibleValidationCheck[]
   additionalHeaders?: Record<string, string>
   allowValidationWithoutModel?: boolean
+  validationModel?: string | ((config: TConfig) => string | null | undefined)
   schedule?: {
     mode: 'once' | 'interval'
     intervalMs?: number
@@ -89,7 +90,11 @@ async function pickValidationModel<TConfig extends { apiKey?: string | null, bas
   config: TConfig,
   provider: ProviderInstance,
   providerExtra: ProviderExtraMethods<TConfig> | undefined,
+  preferredModel?: string | null,
 ): Promise<string | null> {
+  if (preferredModel)
+    return preferredModel
+
   try {
     const models = await resolveModels(config, provider, providerExtra)
     const modelId = extractModelId(models.find(model => !shouldSkipModelId(extractModelId(model))))
@@ -107,6 +112,13 @@ export function createOpenAICompatibleValidators<TConfig extends { apiKey?: stri
   const additionalHeaders = options?.additionalHeaders
   const missingValidationModelReason = 'No model available for validation. Configure a model manually and try again.'
 
+  function resolveValidationModel(config: TConfig): string | null {
+    if (typeof options?.validationModel === 'function')
+      return options.validationModel(config)?.trim() || null
+
+    return options?.validationModel?.trim() || null
+  }
+
   interface ChatCheckResult {
     connectivityOk: boolean
     chatOk: boolean
@@ -119,7 +131,7 @@ export function createOpenAICompatibleValidators<TConfig extends { apiKey?: stri
     provider: ProviderInstance,
     providerExtra: ProviderExtraMethods<TConfig> | undefined,
   ): Promise<ChatCheckResult> {
-    const model = await pickValidationModel(config, provider, providerExtra)
+    const model = await pickValidationModel(config, provider, providerExtra, resolveValidationModel(config))
 
     if (!model) {
       if (options?.allowValidationWithoutModel) {

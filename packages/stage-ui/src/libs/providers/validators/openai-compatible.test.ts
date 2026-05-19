@@ -74,4 +74,25 @@ describe('createOpenAICompatibleValidators', () => {
     expect(chatResult.valid).toBe(true)
     expect(generateTextMock).not.toHaveBeenCalled()
   })
+
+  it('uses an explicit validation model before probing model listing', async () => {
+    generateTextMock.mockResolvedValue({ text: 'ok' })
+
+    const [connectivityValidator, chatValidator] = getProviderValidators({
+      checks: ['connectivity', 'chat_completions'],
+      validationModel: 'gpt-4o',
+    })
+
+    const validationCache = new Map<string, unknown>()
+    const connectivityResult = await connectivityValidator.validator(config, provider as any, undefined as any, { validationCache } as any)
+    const chatResult = await chatValidator.validator(config, provider as any, undefined as any, { validationCache } as any)
+
+    expect(connectivityResult.valid).toBe(true)
+    expect(chatResult.valid).toBe(true)
+    expect(listModelsMock).not.toHaveBeenCalled()
+    expect(generateTextMock).toHaveBeenCalledTimes(1)
+    expect(generateTextMock).toHaveBeenCalledWith(expect.objectContaining({
+      model: 'gpt-4o',
+    }))
+  })
 })
