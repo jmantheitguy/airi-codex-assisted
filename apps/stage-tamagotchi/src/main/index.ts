@@ -54,6 +54,16 @@ if (platform === 'win32' && env.AIRI_ENABLE_HARDWARE_ACCELERATION !== 'true') {
   app.disableHardwareAcceleration()
   app.commandLine.appendSwitch('disable-gpu')
   app.commandLine.appendSwitch('disable-gpu-compositing')
+  app.commandLine.appendSwitch('disable-gpu-rasterization')
+  app.commandLine.appendSwitch('disable-gpu-sandbox')
+  app.commandLine.appendSwitch('disable-accelerated-2d-canvas')
+  app.commandLine.appendSwitch('disable-accelerated-video-decode')
+  app.commandLine.appendSwitch('disable-zero-copy')
+  app.commandLine.appendSwitch('disable-vulkan')
+  app.commandLine.appendSwitch('use-angle', 'swiftshader')
+  app.commandLine.appendSwitch('use-gl', 'swiftshader')
+  app.commandLine.appendSwitch('enable-unsafe-swiftshader')
+  app.commandLine.appendSwitch('disable-features', 'UseSkiaRenderer,VizDisplayCompositor,CanvasOopRasterization')
 }
 
 // Thanks to [@blurymind](https://github.com/blurymind),

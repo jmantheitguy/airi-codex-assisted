@@ -14,7 +14,6 @@ import { fileURLToPath } from 'node:url'
 
 import clickDragPlugin from 'electron-click-drag-plugin'
 
-import { is } from '@electron-toolkit/utils'
 import { defineInvokeHandler } from '@moeru/eventa'
 import { createContext } from '@moeru/eventa/adapters/electron/main'
 import { initScreenCaptureForWindow } from '@proj-airi/electron-screen-capture/main'
@@ -94,7 +93,7 @@ export async function setupMainWindow(params: {
   }
 
   // NOTICE: in development mode, open devtools by default
-  if (is.dev || env.MAIN_APP_DEBUG || env.APP_DEBUG) {
+  if (env.MAIN_APP_DEBUG || env.APP_DEBUG) {
     try {
       window.webContents.openDevTools({ mode: 'detach' })
     }
