@@ -67,13 +67,6 @@ const ALIYUN_NLS_REGIONS = [
 
 type AliyunNlsRegion = typeof ALIYUN_NLS_REGIONS[number]
 
-const DISABLED_PROVIDER_IDS = new Set([
-  'elevenlabs',
-  'openai',
-  'openai-audio-speech',
-  'openai-audio-transcription',
-])
-
 export interface ProviderMetadata {
   id: string
   order?: number
@@ -1819,10 +1812,6 @@ export const useProvidersStore = defineStore('providers', () => {
     providerMetadata,
   )
 
-  for (const providerId of DISABLED_PROVIDER_IDS) {
-    delete providerMetadata[providerId]
-  }
-
   const providerValidationIntervalMsById = new Map<string, number>()
   for (const definition of definedProviders) {
     const intervalMs = getProviderValidationIntervalMs({
@@ -1844,10 +1833,6 @@ export const useProvidersStore = defineStore('providers', () => {
 
   // Populate non-speech providers from unified registry translation.
   for (const [providerId, translated] of Object.entries(translatedProviderMetadata)) {
-    if (DISABLED_PROVIDER_IDS.has(providerId)) {
-      continue
-    }
-
     if (translated.category === 'speech' || translated.category === 'transcription') {
       continue
     }

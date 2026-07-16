@@ -24,7 +24,7 @@ export function toSignedPercent(value: number): string {
 const DEFAULT_SPEECH_PROVIDER = 'browser-local-audio-speech'
 const DEFAULT_SPEECH_MODEL = LOCAL_SPEECH_MODEL
 const DEFAULT_SPEECH_VOICE_ID = LOCAL_SPEECH_VOICE_ID
-const REMOTE_SPEECH_PROVIDERS = new Set(['elevenlabs', 'openai-audio-speech', 'openai-compatible-audio-speech'])
+const REMOTE_SPEECH_PROVIDERS = new Set(['openai-audio-speech', 'openai-compatible-audio-speech'])
 
 export const useSpeechStore = defineStore('speech', () => {
   const providersStore = useProvidersStore()

@@ -1,3 +1,4 @@
+import './openai'
 import './aihubmix'
 import './lm-studio'
 import './openai-compatible'
