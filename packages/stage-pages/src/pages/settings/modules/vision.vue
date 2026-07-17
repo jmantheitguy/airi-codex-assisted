@@ -195,7 +195,7 @@ onUnmounted(() => {
           <input v-model.number="frameAttachmentIntervalMs" type="number" min="1000" max="60000" step="1000" class="border border-neutral-200 rounded-lg bg-white px-3 py-2 dark:border-neutral-800 dark:bg-neutral-900">
         </label>
         <p class="text-xs text-neutral-500 md:col-span-3 dark:text-neutral-400">
-          Frames are attached to messages sent through the active chat provider. Use a local vision model to keep these requests local.
+          Frames are attached to messages sent through the active chat provider. Defaults are tuned for low API spend; lower the size or increase the interval if you need to stay under a strict monthly budget.
         </p>
       </div>
 

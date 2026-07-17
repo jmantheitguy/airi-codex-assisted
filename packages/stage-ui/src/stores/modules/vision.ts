@@ -46,8 +46,8 @@ export const useVisionStore = defineStore('vision-store', () => {
   const minPoseVisibility = useLocalStorageManualReset<number>('settings/vision/min-pose-visibility', 0.5)
   const contextInjectionEnabled = useLocalStorageManualReset<boolean>('settings/vision/context-injection-enabled', true)
   const frameAttachmentEnabled = useLocalStorageManualReset<boolean>('settings/vision/frame-attachment-enabled', false)
-  const frameAttachmentMaxSize = useLocalStorageManualReset<number>('settings/vision/frame-attachment-max-size', 512)
-  const frameAttachmentIntervalMs = useLocalStorageManualReset<number>('settings/vision/frame-attachment-interval-ms', 5000)
+  const frameAttachmentMaxSize = useLocalStorageManualReset<number>('settings/vision/frame-attachment-max-size', 384)
+  const frameAttachmentIntervalMs = useLocalStorageManualReset<number>('settings/vision/frame-attachment-interval-ms', 30000)
 
   const permissionState = ref<'unknown' | 'granted' | 'denied'>('unknown')
   const runtimeStatus = ref<'idle' | 'starting' | 'running' | 'error'>('idle')

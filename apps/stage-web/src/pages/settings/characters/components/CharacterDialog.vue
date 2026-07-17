@@ -274,7 +274,7 @@ const isOpen = computed({
                   <h3 class="text-sm text-neutral-900 font-semibold dark:text-neutral-100">
                     LLM Configuration
                   </h3>
-                  <FieldInput v-model="form.llmModel" label="Model" placeholder="gpt-4o" />
+                  <FieldInput v-model="form.llmModel" label="Model" placeholder="gpt-4o-mini" />
                   <!-- Use number input for temperature properly -->
                   <div class="flex flex-col gap-1.5">
                     <label class="text-sm text-neutral-700 font-medium dark:text-neutral-300">Temperature</label>
