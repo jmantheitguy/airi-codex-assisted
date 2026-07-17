@@ -128,6 +128,16 @@ function drawPreviewOverlay(state?: PerceptionState) {
   }
 }
 
+async function startPreview() {
+  enabled.value = true
+  await startCapture()
+}
+
+function stopPreview() {
+  stopCapture()
+  enabled.value = false
+}
+
 watch(activeStream, stream => attachPreviewStream(stream), { immediate: true })
 watch([latestPerceptionState, overlayEnabled, poseEnabled, handsEnabled, faceEnabled], () => drawPreviewOverlay(latestPerceptionState.value), { deep: false })
 

@@ -294,6 +294,15 @@ export const useChatVisionRuntimeStore = defineStore('chat-vision-runtime', () =
           return
         }
 
+        if (source === 'screen') {
+          // Screen sharing must stay user-initiated. Do not auto-open the
+          // browser picker from persisted settings or app-level startup.
+          if (!wasEnabled || source !== previousSource) {
+            stopCapture()
+          }
+          return
+        }
+
         if (!wasEnabled || deviceId !== previousDeviceId || source !== previousSource) {
           await startCapture()
         }
