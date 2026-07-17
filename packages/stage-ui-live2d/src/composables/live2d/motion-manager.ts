@@ -128,6 +128,7 @@ export function useMotionUpdatePluginBeatSync(beatSync: BeatSyncController): Mot
     const stiffness = 120 // Higher -> Snappier
     const damping = 16 // Higher -> Less bounce
     const mass = 1
+    const dt = Math.min(Math.max((ctx.timeDelta || 16) / 1000, 0), 0.05)
 
     let paramAngleX = ctx.model.getParameterValueById('ParamAngleX') as number
     let paramAngleY = ctx.model.getParameterValueById('ParamAngleY') as number
@@ -139,8 +140,8 @@ export function useMotionUpdatePluginBeatSync(beatSync: BeatSyncController): Mot
       const pos = paramAngleX
       const vel = beatSync.velocityX.value
       const accel = (stiffness * (target - pos) - damping * vel) / mass
-      beatSync.velocityX.value = vel + accel * ctx.timeDelta
-      paramAngleX = pos + beatSync.velocityX.value * ctx.timeDelta
+      beatSync.velocityX.value = vel + accel * dt
+      paramAngleX = pos + beatSync.velocityX.value * dt
 
       if (Math.abs(target - paramAngleX) < 0.01 && Math.abs(beatSync.velocityX.value) < 0.01) {
         paramAngleX = target
@@ -154,8 +155,8 @@ export function useMotionUpdatePluginBeatSync(beatSync: BeatSyncController): Mot
       const pos = paramAngleY
       const vel = beatSync.velocityY.value
       const accel = (stiffness * (target - pos) - damping * vel) / mass
-      beatSync.velocityY.value = vel + accel * ctx.timeDelta
-      paramAngleY = pos + beatSync.velocityY.value * ctx.timeDelta
+      beatSync.velocityY.value = vel + accel * dt
+      paramAngleY = pos + beatSync.velocityY.value * dt
 
       // Snap
       if (Math.abs(target - paramAngleY) < 0.01 && Math.abs(beatSync.velocityY.value) < 0.01) {
@@ -170,8 +171,8 @@ export function useMotionUpdatePluginBeatSync(beatSync: BeatSyncController): Mot
       const pos = paramAngleZ
       const vel = beatSync.velocityZ.value
       const accel = (stiffness * (target - pos) - damping * vel) / mass
-      beatSync.velocityZ.value = vel + accel * ctx.timeDelta
-      paramAngleZ = pos + beatSync.velocityZ.value * ctx.timeDelta
+      beatSync.velocityZ.value = vel + accel * dt
+      paramAngleZ = pos + beatSync.velocityZ.value * dt
 
       // Snap
       if (Math.abs(target - paramAngleZ) < 0.01 && Math.abs(beatSync.velocityZ.value) < 0.01) {
