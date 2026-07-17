@@ -991,12 +991,14 @@ export const useProvidersStore = defineStore('providers', () => {
       icon: 'i-simple-icons:elevenlabs',
       defaultOptions: () => ({
         baseUrl: 'https://unspeech.hyp3r.link/v1/',
+        model: 'eleven_multilingual_v2',
+        voiceId: '21m00Tcm4TlvDq8ikWAM',
         voiceSettings: {
           similarityBoost: 0.75,
           stability: 0.5,
         },
       }),
-      createProvider: async config => createUnElevenLabs((config.apiKey as string).trim(), (config.baseUrl as string).trim()) as SpeechProviderWithExtraOptions<string, UnElevenLabsOptions>,
+      createProvider: async config => createUnElevenLabs(String(config.apiKey ?? '').trim(), String(config.baseUrl ?? '').trim()) as SpeechProviderWithExtraOptions<string, UnElevenLabsOptions>,
       capabilities: {
         listModels: async () => {
           return elevenLabsModels.map((model) => {
@@ -1011,7 +1013,12 @@ export const useProvidersStore = defineStore('providers', () => {
           })
         },
         listVoices: async (config) => {
-          const provider = createUnElevenLabs((config.apiKey as string).trim(), (config.baseUrl as string).trim()) as VoiceProviderWithExtraOptions<UnElevenLabsOptions>
+          const apiKey = String(config.apiKey ?? '').trim()
+          const baseUrl = String(config.baseUrl ?? '').trim()
+          if (!apiKey || !baseUrl)
+            return []
+
+          const provider = createUnElevenLabs(apiKey, baseUrl) as VoiceProviderWithExtraOptions<UnElevenLabsOptions>
 
           const voices = await listVoices({
             ...provider.voice(),

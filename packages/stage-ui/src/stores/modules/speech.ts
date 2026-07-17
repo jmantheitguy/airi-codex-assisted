@@ -10,7 +10,6 @@ import { computed, onMounted, watch } from 'vue'
 import { toXml } from 'xast-util-to-xml'
 import { x } from 'xastscript'
 
-import { LOCAL_SPEECH_MODEL, LOCAL_SPEECH_VOICE_ID } from '../../constants/local-models'
 import { useProvidersStore } from '../providers'
 
 export function toSignedPercent(value: number): string {
@@ -21,10 +20,9 @@ export function toSignedPercent(value: number): string {
   return '0%'
 }
 
-const DEFAULT_SPEECH_PROVIDER = 'browser-local-audio-speech'
-const DEFAULT_SPEECH_MODEL = LOCAL_SPEECH_MODEL
-const DEFAULT_SPEECH_VOICE_ID = LOCAL_SPEECH_VOICE_ID
-const REMOTE_SPEECH_PROVIDERS = new Set(['openai-audio-speech', 'openai-compatible-audio-speech'])
+const DEFAULT_SPEECH_PROVIDER = 'elevenlabs'
+const DEFAULT_SPEECH_MODEL = 'eleven_multilingual_v2'
+const DEFAULT_SPEECH_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'
 
 export const useSpeechStore = defineStore('speech', () => {
   const providersStore = useProvidersStore()
@@ -130,7 +128,7 @@ export const useSpeechStore = defineStore('speech', () => {
     immediate: true,
   })
 
-  if (!activeSpeechProvider.value || activeSpeechProvider.value === 'speech-noop' || REMOTE_SPEECH_PROVIDERS.has(activeSpeechProvider.value)) {
+  if (!activeSpeechProvider.value || activeSpeechProvider.value === 'speech-noop') {
     activeSpeechProvider.value = DEFAULT_SPEECH_PROVIDER
     activeSpeechModel.value = DEFAULT_SPEECH_MODEL
     activeSpeechVoiceId.value = DEFAULT_SPEECH_VOICE_ID
@@ -146,14 +144,14 @@ export const useSpeechStore = defineStore('speech', () => {
   }
 
   watch(
-    () => providersStore.configuredSpeechProvidersMetadata.map(provider => provider.id),
-    (configuredProviderIds) => {
+    () => allAudioSpeechProvidersMetadata.value.map(provider => provider.id),
+    (availableProviderIds) => {
       if (!activeSpeechProvider.value)
         return
 
-      // NOTICE: clear stale selection when the currently selected speech provider
-      // is no longer configured to avoid implicit fallback behavior from persisted state.
-      if (!configuredProviderIds.includes(activeSpeechProvider.value)) {
+      // Clear stale selections only when the provider no longer exists/is unavailable.
+      // Unconfigured cloud providers must remain selectable so users can add credentials.
+      if (availableProviderIds.length > 0 && !availableProviderIds.includes(activeSpeechProvider.value)) {
         activeSpeechProvider.value = DEFAULT_SPEECH_PROVIDER
         activeSpeechModel.value = DEFAULT_SPEECH_MODEL
         activeSpeechVoiceId.value = DEFAULT_SPEECH_VOICE_ID
