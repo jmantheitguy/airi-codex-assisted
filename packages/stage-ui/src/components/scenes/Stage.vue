@@ -62,8 +62,8 @@ const {
   live2dShadowEnabled,
   live2dMaxFps,
 } = storeToRefs(settingsStore)
-const { mouthOpenSize } = storeToRefs(useSpeakingStore())
-const { audioContext } = useAudioContext()
+const { mouthOpenSize, nowSpeaking: globalNowSpeaking } = storeToRefs(useSpeakingStore())
+const { audioContext, calculateVolume } = useAudioContext()
 const currentAudioSource = ref<AudioBufferSourceNode>()
 
 const { onBeforeMessageComposed, onBeforeSend, onTokenLiteral, onTokenSpecial, onStreamEnd, onAssistantResponseEnd } = useChatOrchestratorStore()
@@ -158,6 +158,7 @@ function playSpecialToken(special: string) {
   emotionMessageContentQueue.enqueue(special)
 }
 const lipSyncNode = ref<AudioNode>()
+const lipSyncSilentOutput = ref<GainNode>()
 
 async function playFunction(item: Parameters<Parameters<typeof createPlaybackManager<AudioBuffer>>[0]['play']>[0], signal: AbortSignal): Promise<void> {
   if (!audioContext || !item.audio)
@@ -334,11 +335,13 @@ playbackManager.onEnd(({ item }) => {
     playSpecialToken(item.special)
 
   nowSpeaking.value = false
+  globalNowSpeaking.value = false
   mouthOpenSize.value = 0
 })
 
 playbackManager.onStart(({ item }) => {
   nowSpeaking.value = true
+  globalNowSpeaking.value = true
   // NOTICE: postCaption and postPresent may throw errors if the BroadcastChannel is closed
   // (e.g., when navigating away from the page). We wrap these in try-catch to prevent
   // breaking playback when the channel is unavailable.
@@ -366,7 +369,11 @@ function startLipSyncLoop() {
       mouthOpenSize.value = 0
     }
     else {
-      mouthOpenSize.value = live2dLipSync.value.getMouthOpen()
+      const lipSyncMouthOpen = live2dLipSync.value.getMouthOpen()
+      const analyserMouthOpen = audioAnalyser.value
+        ? Math.min(1, calculateVolume(audioAnalyser.value, 'linear') * 3)
+        : 0
+      mouthOpenSize.value = Math.max(lipSyncMouthOpen, analyserMouthOpen)
     }
     lipSyncLoopId.value = requestAnimationFrame(tick)
   }
@@ -382,6 +389,12 @@ async function setupLipSync() {
     const lipSync = await createLive2DLipSync(audioContext, wlipsyncProfile as Profile, live2dLipSyncOptions)
     live2dLipSync.value = lipSync
     lipSyncNode.value = lipSync.node
+    if (!lipSyncSilentOutput.value) {
+      lipSyncSilentOutput.value = audioContext.createGain()
+      lipSyncSilentOutput.value.gain.value = 0
+      lipSync.node.connect(lipSyncSilentOutput.value)
+      lipSyncSilentOutput.value.connect(audioContext.destination)
+    }
     await audioContext.resume()
     startLipSyncLoop()
     lipSyncStarted.value = true
@@ -463,6 +476,8 @@ chatHookCleanups.push(onAssistantResponseEnd(async (_message) => {
 
 onUnmounted(() => {
   lipSyncStarted.value = false
+  globalNowSpeaking.value = false
+  mouthOpenSize.value = 0
 })
 
 // Resume audio context on first user interaction (browser requirement)
@@ -504,6 +519,14 @@ onUnmounted(() => {
     cancelAnimationFrame(lipSyncLoopId.value)
     lipSyncLoopId.value = undefined
   }
+
+  try {
+    lipSyncNode.value?.disconnect()
+    lipSyncSilentOutput.value?.disconnect()
+  }
+  catch {}
+  lipSyncNode.value = undefined
+  lipSyncSilentOutput.value = undefined
 
   chatHookCleanups.forEach(dispose => dispose?.())
   viewUpdateCleanups.forEach(dispose => dispose?.())
