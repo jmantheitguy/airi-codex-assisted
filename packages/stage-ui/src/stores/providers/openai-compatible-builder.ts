@@ -33,6 +33,13 @@ function logWarn(...args: unknown[]) {
     console.warn(...args)
 }
 
+function tokenLimitParamForModel(model: string) {
+  if (/^(gpt-5|o\d)/.test(model))
+    return { max_completion_tokens: 1 }
+
+  return { max_tokens: 1 }
+}
+
 export function buildOpenAICompatibleProvider(
   options: Partial<ProviderMetadata> & {
     id: string
@@ -201,7 +208,7 @@ export function buildOpenAICompatibleProvider(
               headers: additionalHeaders,
               model,
               messages: message.messages(message.user('ping')),
-              max_tokens: 1,
+              ...tokenLimitParamForModel(model),
             })
             return null
           }

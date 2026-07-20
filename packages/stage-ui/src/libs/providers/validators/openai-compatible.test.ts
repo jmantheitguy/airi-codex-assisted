@@ -95,4 +95,23 @@ describe('createOpenAICompatibleValidators', () => {
       model: 'gpt-4o',
     }))
   })
+
+  it('uses max_completion_tokens for GPT-5 validation models', async () => {
+    generateTextMock.mockResolvedValue({ text: 'ok' })
+
+    const [connectivityValidator] = getProviderValidators({
+      checks: ['connectivity'],
+      validationModel: 'gpt-5.5',
+    })
+
+    await connectivityValidator.validator(config, provider as any, undefined as any, undefined as any)
+
+    expect(generateTextMock).toHaveBeenCalledWith(expect.objectContaining({
+      model: 'gpt-5.5',
+      max_completion_tokens: 1,
+    }))
+    expect(generateTextMock).toHaveBeenCalledWith(expect.not.objectContaining({
+      max_tokens: expect.anything(),
+    }))
+  })
 })

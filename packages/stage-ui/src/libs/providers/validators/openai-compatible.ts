@@ -71,6 +71,13 @@ function shouldSkipModelId(modelId: string): boolean {
   ].some(fragment => modelId.includes(fragment))
 }
 
+function tokenLimitParamForModel(model: string) {
+  if (/^(gpt-5|o\d)/.test(model))
+    return { max_completion_tokens: 1 }
+
+  return { max_tokens: 1 }
+}
+
 async function resolveModels<TConfig extends { apiKey?: string | null, baseUrl?: string | URL | null }>(
   config: TConfig,
   provider: ProviderInstance,
@@ -152,7 +159,7 @@ export function createOpenAICompatibleValidators<TConfig extends { apiKey?: stri
         headers: additionalHeaders,
         model,
         messages: message.messages(message.user('ping')),
-        max_tokens: 1,
+        ...tokenLimitParamForModel(model),
       })
 
       return { connectivityOk: true, chatOk: true }
