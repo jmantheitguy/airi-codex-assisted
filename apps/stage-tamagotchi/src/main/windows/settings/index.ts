@@ -42,7 +42,11 @@ export function setupSettingsWindowReusableFunc(params: {
       params.onWindowCreated(window)
     }
 
-    window.on('ready-to-show', () => window.show())
+    window.on('ready-to-show', () => {
+      window.setAlwaysOnTop(true, 'screen-saver', 2)
+      window.show()
+      window.focus()
+    })
     window.webContents.setWindowOpenHandler((details) => {
       shell.openExternal(details.url)
       return { action: 'deny' }

@@ -128,7 +128,6 @@ app.whenReady().then(async () => {
 
   const devtoolsMarkdownStressWindow = injeca.provide('windows:devtools:markdown-stress', () => setupDevtoolsWindow())
 
-  const onboardingWindow = injeca.provide('windows:onboarding', () => setupOnboardingWindowManager())
   const noticeWindow = injeca.provide('windows:notice', {
     dependsOn: { i18n, serverChannel },
     build: ({ dependsOn }) => setupNoticeWindowManager(dependsOn),
@@ -152,6 +151,11 @@ app.whenReady().then(async () => {
   const settingsWindow = injeca.provide('windows:settings', {
     dependsOn: { widgetsManager, beatSync, autoUpdater, devtoolsMarkdownStressWindow, serverChannel, mcpStdioManager, i18n },
     build: async ({ dependsOn }) => setupSettingsWindowReusableFunc(dependsOn),
+  })
+
+  const onboardingWindow = injeca.provide('windows:onboarding', {
+    dependsOn: { settingsWindow },
+    build: ({ dependsOn }) => setupOnboardingWindowManager({ settingsWindow: dependsOn.settingsWindow }),
   })
 
   const mainWindow = injeca.provide('windows:main', {

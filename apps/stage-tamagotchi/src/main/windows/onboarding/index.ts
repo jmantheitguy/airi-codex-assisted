@@ -9,6 +9,7 @@ import icon from '../../../../resources/icon.png?asset'
 
 import { electronOnboardingClose, electronOnboardingCompleted, electronOnboardingSkipped, electronOpenOnboarding } from '../../../shared/eventa'
 import { baseUrl, getElectronMainDirname, load, withHashRoute } from '../../libs/electron/location'
+import { toggleWindowShow } from '../shared/window'
 
 export interface OnboardingWindowManager {
   getWindow: () => BrowserWindow | null
@@ -18,7 +19,9 @@ export interface OnboardingWindowManager {
   markSkipped: () => void
 }
 
-export function setupOnboardingWindowManager(): OnboardingWindowManager {
+export function setupOnboardingWindowManager(params: {
+  settingsWindow?: () => Promise<BrowserWindow>
+} = {}): OnboardingWindowManager {
   let window: BrowserWindow | undefined
 
   const close = () => {
@@ -35,6 +38,9 @@ export function setupOnboardingWindowManager(): OnboardingWindowManager {
 
   const markCompleted = () => {
     hide()
+    params.settingsWindow?.()
+      .then(window => toggleWindowShow(window))
+      .catch(err => console.error('failed to open settings after onboarding:', err))
   }
 
   const markSkipped = () => {
