@@ -2295,10 +2295,6 @@ export const useProvidersStore = defineStore('providers', () => {
       return true
     }
 
-    if (isProviderConfigDirty(providerId)) {
-      return true
-    }
-
     return !!providerRuntimeState.value[providerId]?.validatedCredentialHash
   }
 

@@ -8,7 +8,8 @@ import { useRouter } from 'vue-router'
 
 import { useProvidersStore } from '../stores/providers'
 
-export function useProviderValidation(providerId: string) {
+export function useProviderValidation(providerId: string, options: { autoValidate?: boolean } = {}) {
+  const autoValidate = options.autoValidate ?? true
   const { t } = useI18n()
   const router = useRouter()
   const providersStore = useProvidersStore()
@@ -97,6 +98,9 @@ export function useProviderValidation(providerId: string) {
   }
 
   const debouncedValidateConfiguration = useDebounceFn(() => {
+    if (!autoValidate)
+      return
+
     const config = credentials.value
     const hasApiKey = 'apiKey' in config && !!config.apiKey?.trim()
     const hasBaseUrl = 'baseUrl' in config && !!config.baseUrl?.trim()
@@ -113,7 +117,7 @@ export function useProviderValidation(providerId: string) {
 
   onMounted(() => {
     providersStore.initializeProvider(providerId)
-    if (Object.keys(credentials.value).some(key => !!credentials.value[key])) {
+    if (autoValidate && Object.keys(credentials.value).some(key => !!credentials.value[key])) {
       validateConfiguration()
     }
   })
@@ -146,6 +150,7 @@ export function useProviderValidation(providerId: string) {
     isValidating,
     isValid,
     validationMessage,
+    validateConfiguration,
     handleResetSettings,
     forceValid,
   }

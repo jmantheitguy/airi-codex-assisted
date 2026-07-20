@@ -13,6 +13,7 @@ import {
 import { useProviderValidation } from '@proj-airi/stage-ui/composables/use-provider-validation'
 import { useConsciousnessStore } from '@proj-airi/stage-ui/stores/modules/consciousness'
 import { useProvidersStore } from '@proj-airi/stage-ui/stores/providers'
+import { Button } from '@proj-airi/ui'
 import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
@@ -52,8 +53,13 @@ const {
   isValid,
   validationMessage,
   handleResetSettings,
+  validateConfiguration,
   forceValid,
-} = useProviderValidation(providerId)
+} = useProviderValidation(providerId, { autoValidate: false })
+
+const hasCredentials = computed(() => {
+  return !!apiKey.value?.trim() || !!baseUrl.value?.trim()
+})
 
 function goToModelSelection() {
   activeProvider.value = providerId
@@ -86,6 +92,15 @@ function goToModelSelection() {
           :placeholder="providerMetadata?.defaultOptions?.().baseUrl as string || 'Base URL of your provider'"
         />
       </ProviderAdvancedSettings>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <Button size="sm" :loading="isValidating > 0" :disabled="isValidating > 0 || !hasCredentials" @click="validateConfiguration">
+          {{ t('settings.pages.providers.catalog.edit.validators.actions.validate') }}
+        </Button>
+        <Button size="sm" variant="secondary" :disabled="!hasCredentials" @click="forceValid">
+          {{ t('settings.pages.providers.common.continueAnyway') }}
+        </Button>
+      </div>
 
       <!-- Validation Status -->
       <Alert v-if="!isValid && isValidating === 0 && validationMessage" type="error">
