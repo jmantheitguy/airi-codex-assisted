@@ -7,8 +7,6 @@ import { electron } from '@proj-airi/electron-eventa'
 import {
   useElectronEventaInvoke,
   useElectronMouseAroundWindowBorder,
-  useElectronMouseInElement,
-  useElectronMouseInWindow,
   useElectronRelativeMouse,
 } from '@proj-airi/electron-vueuse'
 import { useAudioRecorder } from '@proj-airi/stage-ui/composables/audio/audio-recorder'
@@ -43,10 +41,6 @@ const isLoading = ref(!isStageWebglDisabled)
 const isIgnoringMouseEvents = ref(false)
 const shouldFadeOnCursorWithin = ref(false)
 
-const { isOutside: isOutsideWindow } = useElectronMouseInWindow()
-const controlsIslandElement = computed(() => controlsIslandRef.value?.islandRef)
-const { isOutside } = useElectronMouseInElement(controlsIslandElement)
-const isOutsideFor250Ms = refDebounced(isOutside, 250)
 const { x: relativeMouseX, y: relativeMouseY } = useElectronRelativeMouse()
 const { stageModelRenderer } = storeToRefs(useSettings())
 const isTransparent = computed(() => {
@@ -68,44 +62,20 @@ const { fadeOnHoverEnabled } = storeToRefs(useControlsIslandStore())
 
 watch(componentStateStage, () => isLoading.value = !isStageWebglDisabled && componentStateStage.value !== 'mounted', { immediate: true })
 
-const { pause, resume } = watch(isTransparent, (transparent) => {
+const { pause } = watch(isTransparent, (transparent) => {
   shouldFadeOnCursorWithin.value = fadeOnHoverEnabled.value && !transparent
 }, { immediate: true })
 
 const hearingDialogOpen = computed(() => controlsIslandRef.value?.hearingDialogOpen ?? false)
 
-watch([isOutsideFor250Ms, isAroundWindowBorderFor250Ms, isOutsideWindow, isTransparent, hearingDialogOpen, fadeOnHoverEnabled], () => {
-  if (hearingDialogOpen.value) {
-    // Hearing dialog/drawer is open; keep window interactive
-    isIgnoringMouseEvents.value = false
-    shouldFadeOnCursorWithin.value = false
-    setIgnoreMouseEvents([false, { forward: true }])
-    pause()
-    return
-  }
-
-  const insideControls = !isOutsideFor250Ms.value
-  const nearBorder = isAroundWindowBorderFor250Ms.value
-
-  if (insideControls || nearBorder) {
-    // Inside interactive controls or near resize border: do NOT ignore events
-    isIgnoringMouseEvents.value = false
-    shouldFadeOnCursorWithin.value = false
-    setIgnoreMouseEvents([false, { forward: true }])
-    pause()
-  }
-  else {
-    const fadeEnabled = fadeOnHoverEnabled.value
-    // Otherwise allow click-through while we fade UI based on transparency (when enabled)
-    isIgnoringMouseEvents.value = fadeEnabled
-    shouldFadeOnCursorWithin.value = fadeEnabled && !isOutsideWindow.value && !isTransparent.value
-    setIgnoreMouseEvents([fadeEnabled, { forward: true }])
-    if (fadeEnabled)
-      resume()
-    else
-      pause()
-  }
-})
+watch([hearingDialogOpen, fadeOnHoverEnabled], () => {
+  // Keep the transparent overlay interactive. Electron click-through can drop
+  // the first click before renderer hover logic has a chance to re-enable input.
+  isIgnoringMouseEvents.value = false
+  shouldFadeOnCursorWithin.value = false
+  setIgnoreMouseEvents([false, { forward: true }])
+  pause()
+}, { immediate: true })
 
 const settingsAudioDeviceStore = useSettingsAudioDevice()
 const { stream, enabled } = storeToRefs(settingsAudioDeviceStore)
