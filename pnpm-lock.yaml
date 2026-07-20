@@ -2335,6 +2335,9 @@ importers:
       '@proj-airi/i18n':
         specifier: workspace:*
         version: link:../i18n
+      '@proj-airi/model-driver-mediapipe':
+        specifier: workspace:^
+        version: link:../model-driver-mediapipe
       '@proj-airi/server-sdk':
         specifier: workspace:*
         version: link:../server-sdk
