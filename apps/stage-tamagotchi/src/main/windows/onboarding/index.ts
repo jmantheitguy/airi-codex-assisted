@@ -27,12 +27,16 @@ export function setupOnboardingWindowManager(): OnboardingWindowManager {
     }
   }
 
+  const closeAfterIpcReply = () => {
+    setTimeout(() => close(), 100)
+  }
+
   const markCompleted = () => {
-    close()
+    closeAfterIpcReply()
   }
 
   const markSkipped = () => {
-    close()
+    closeAfterIpcReply()
   }
 
   const createWindow = async () => {
