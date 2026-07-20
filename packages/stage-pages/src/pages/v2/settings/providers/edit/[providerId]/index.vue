@@ -148,6 +148,8 @@ function setFieldValue(key: string, value: unknown) {
   if (!providerConfigEdit.value)
     return
 
+  providerConfigEdit.value.config ||= {}
+
   // NOTICE: Update local draft only. useCloned makes it safe to mutate 'cloned.value'.
   providerConfigEdit.value.config[key] = value
 }
@@ -167,11 +169,11 @@ function normalizeHeaderRows(headers: Record<string, string>) {
 }
 
 watch(providerConfigEdit, (config) => {
-  if (!('headers' in config))
+  if (!config?.config || !('headers' in config.config))
     return
 
   isSyncingHeaders.value = true
-  headerRows.value = normalizeHeaderRows((config.headers as Record<string, string>) || {})
+  headerRows.value = normalizeHeaderRows((config.config.headers as Record<string, string>) || {})
   isSyncingHeaders.value = false
 }, { deep: true, immediate: true })
 
@@ -259,6 +261,11 @@ watch([providerConfigEdit, providerDefinition], () => {
 }, { deep: true, immediate: true })
 
 onMounted(() => {
+  if (!providerConfigEdit.value)
+    return
+
+  providerConfigEdit.value.config ||= {}
+
   if (!providerConfig.value.validated) {
     providerConfigEdit.value.config = merge(providerSchemaDefault.value, providerConfigEdit.value?.config || {})
   }
@@ -289,6 +296,7 @@ function commitEditedConfig(options: { validated: boolean, validationBypassed: b
   if (!providerConfigEdit.value)
     return
 
+  providerConfigEdit.value.config ||= {}
   providerCatalogStore.commitProviderConfig(providerId.value, { ...providerConfigEdit.value.config }, options)
 }
 

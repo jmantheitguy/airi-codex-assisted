@@ -44,8 +44,10 @@ const isSmallerThan2XL = breakpoints.smaller('2xl')
 const paneDatasourceListSize = computed(() => isSmallerThan2XL.value ? 30 : 20)
 const paneDatasourceEditSize = computed(() => isSmallerThan2XL.value ? 80 : 70)
 
-function handleAdd(providerId: string) {
-  providerCatalogStore.addProvider(providerId)
+async function handleAdd(providerId: string) {
+  const provider = await providerCatalogStore.addProvider(providerId)
+  if (provider?.id)
+    router.push(`/v2/settings/providers/edit/${provider.id}`)
 }
 
 function handleClick(providerId: string) {

@@ -61,7 +61,7 @@ export const useProviderCatalogStore = defineStore('provider-catalog', () => {
       validationBypassed: false,
     }
 
-    return useLocalFirstRequest<ProviderCatalogProvider>({
+    useLocalFirstRequest<ProviderCatalogProvider>({
       local: async () => {
         configs.value[id] = provider
         await providersRepo.upsert(provider)
@@ -96,6 +96,8 @@ export const useProviderCatalogStore = defineStore('provider-catalog', () => {
         return item
       },
     })
+
+    return provider
   }
 
   async function removeProvider(providerId: string) {
