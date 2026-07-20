@@ -69,54 +69,17 @@ const canProceed = computed(() => {
 })
 
 const primaryActionLabel = computed(() => {
-  return validation.value === 'failed'
-    ? t('settings.dialogs.onboarding.retry')
-    : t('settings.dialogs.onboarding.next')
+  return t('settings.dialogs.onboarding.next')
 })
 
-async function validateConfiguration() {
-  if (!context.selectedProvider.value)
-    return
-
-  validation.value = 'pending'
-  validationError.value = undefined
-
-  try {
-    // Prepare config object
-    const config: Record<string, unknown> = {}
-
-    if (needsApiKey.value)
-      config.apiKey = apiKey.value.trim()
-    if (needsBaseUrl.value)
-      config.baseUrl = baseUrl.value.trim()
-    if (context.selectedProvider.value.id === 'cloudflare-workers-ai')
-      config.accountId = accountId.value.trim()
-
-    // Validate using provider's validator
-    const metadata = providersStore.getProviderMetadata(context.selectedProvider.value.id)
-    const validationResult = await metadata.validators.validateProviderConfig(config)
-    validation.value = validationResult.valid ? 'succeed' : 'failed'
-    if (validation.value === 'failed') {
-      validationError.value = validationResult.reason
-    }
-  }
-  catch (error) {
-    validation.value = 'failed'
-    validationError.value = t('settings.dialogs.onboarding.validationError', {
-      error: error instanceof Error ? error.message : String(error),
-    })
-  }
-}
-
 async function handleNext() {
-  await validateConfiguration()
-  if (validation.value === 'succeed') {
-    await context.handleNextStep({
-      apiKey: apiKey.value,
-      baseUrl: baseUrl.value,
-      accountId: accountId.value,
-    })
-  }
+  validation.value = 'unchecked'
+  validationError.value = undefined
+  await context.handleNextStep({
+    apiKey: apiKey.value,
+    baseUrl: baseUrl.value,
+    accountId: accountId.value,
+  })
 }
 
 async function handleContinueAnyway() {

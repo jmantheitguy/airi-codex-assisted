@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { computed, nextTick, provide, ref } from 'vue'
+import { computed, provide, ref } from 'vue'
 
 import StepModelSelection from './step-model-selection.vue'
 import StepProviderConfiguration from './step-provider-configuration.vue'
@@ -94,14 +94,7 @@ async function saveProviderConfiguration(data: { apiKey: string, baseUrl: string
   }
 
   activeProvider.value = selectedProvider.value.id
-  await nextTick()
-
-  try {
-    await consciousnessStore.loadModelsForProvider(selectedProvider.value.id)
-  }
-  catch (err) {
-    console.error('error', err)
-  }
+  providersStore.forceProviderConfigured(selectedProvider.value.id)
 }
 
 async function handleSave() {
