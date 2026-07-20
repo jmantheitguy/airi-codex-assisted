@@ -108,10 +108,26 @@ describe('createOpenAICompatibleValidators', () => {
 
     expect(generateTextMock).toHaveBeenCalledWith(expect.objectContaining({
       model: 'gpt-5.5',
-      max_completion_tokens: 1,
+      max_completion_tokens: 16,
     }))
     expect(generateTextMock).toHaveBeenCalledWith(expect.not.objectContaining({
       max_tokens: expect.anything(),
     }))
+  })
+
+  it('treats output-limit validation errors as successful chat support', async () => {
+    generateTextMock.mockRejectedValue(new Error('Could not finish the message because max_tokens or model output limit was reached. Please try again with higher max_tokens.'))
+
+    const [connectivityValidator, chatValidator] = getProviderValidators({
+      checks: ['connectivity', 'chat_completions'],
+      validationModel: 'gpt-5.5',
+    })
+
+    const validationCache = new Map<string, unknown>()
+    const connectivityResult = await connectivityValidator.validator(config, provider as any, undefined as any, { validationCache } as any)
+    const chatResult = await chatValidator.validator(config, provider as any, undefined as any, { validationCache } as any)
+
+    expect(connectivityResult.valid).toBe(true)
+    expect(chatResult.valid).toBe(true)
   })
 })

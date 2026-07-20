@@ -35,9 +35,15 @@ function logWarn(...args: unknown[]) {
 
 function tokenLimitParamForModel(model: string) {
   if (/^(gpt-5|o\d)/.test(model))
-    return { max_completion_tokens: 1 }
+    return { max_completion_tokens: 16 }
 
-  return { max_tokens: 1 }
+  return { max_tokens: 16 }
+}
+
+function isOutputLimitError(errorMessage: string) {
+  return errorMessage.includes('max_tokens or model output limit was reached')
+    || errorMessage.includes('maximum context length')
+    || errorMessage.includes('length')
 }
 
 export function buildOpenAICompatibleProvider(
@@ -213,7 +219,11 @@ export function buildOpenAICompatibleProvider(
             return null
           }
           catch (e) {
-            return new Error(`Health check failed: ${(e as Error).message}`)
+            const errorMessage = (e as Error).message
+            if (isOutputLimitError(errorMessage))
+              return null
+
+            return new Error(`Health check failed: ${errorMessage}`)
           }
         })())
       }

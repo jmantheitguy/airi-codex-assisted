@@ -73,9 +73,15 @@ function shouldSkipModelId(modelId: string): boolean {
 
 function tokenLimitParamForModel(model: string) {
   if (/^(gpt-5|o\d)/.test(model))
-    return { max_completion_tokens: 1 }
+    return { max_completion_tokens: 16 }
 
-  return { max_tokens: 1 }
+  return { max_tokens: 16 }
+}
+
+function isOutputLimitError(errorMessage: string) {
+  return errorMessage.includes('max_tokens or model output limit was reached')
+    || errorMessage.includes('maximum context length')
+    || errorMessage.includes('length')
 }
 
 async function resolveModels<TConfig extends { apiKey?: string | null, baseUrl?: string | URL | null }>(
@@ -169,9 +175,13 @@ export function createOpenAICompatibleValidators<TConfig extends { apiKey?: stri
         return { connectivityOk: false, chatOk: false, error: e, errorMessage: errorMessageFrom(e) }
       }
 
+      const errorMessage = errorMessageFrom(e)
+      if (isOutputLimitError(errorMessage))
+        return { connectivityOk: true, chatOk: true }
+
       const status = extractStatusCode(e)
       const chatOk = status === 400 || Boolean(status && status >= 200 && status < 300)
-      return { connectivityOk: true, chatOk, errorMessage: errorMessageFrom(e) }
+      return { connectivityOk: true, chatOk, errorMessage }
     }
   }
 
