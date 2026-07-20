@@ -36,6 +36,7 @@ const openChat = useElectronEventaInvoke(electronOpenChat)
 const isLinux = useElectronEventaInvoke(electron.app.isLinux)
 const closeWindow = useElectronEventaInvoke(electronWindowClose)
 const setAlwaysOnTop = useElectronEventaInvoke(electronWindowSetAlwaysOnTop)
+const setIgnoreMouseEvents = useElectronEventaInvoke(electron.window.setIgnoreMouseEvents)
 
 const expanded = ref(false)
 const islandRef = ref<HTMLElement>()
@@ -46,6 +47,12 @@ const isOutsideAfter2seconds = refDebounced(isOutside, 1500)
 watch(isOutsideAfter2seconds, (outside) => {
   if (outside && expanded.value) {
     expanded.value = false
+  }
+})
+
+watch(expanded, (isExpanded) => {
+  if (isExpanded) {
+    keepWindowInteractive()
   }
 })
 
@@ -62,6 +69,10 @@ watch(alwaysOnTop, (val) => {
 
 function toggleAlwaysOnTop() {
   alwaysOnTop.value = !alwaysOnTop.value
+}
+
+function keepWindowInteractive() {
+  setIgnoreMouseEvents([false, { forward: true }])
 }
 
 // Grouped classes for icon / border / padding and combined style class
@@ -98,9 +109,9 @@ const adjustStyleClasses = computed(() => {
  */
 const startDraggingWindow = !isLinux() ? defineInvoke(context.value, electronStartDraggingWindow) : undefined
 
-// Expose whether hearing dialog is open so parent can disable click-through
+// Expose the interactive root so the transparent window can stop click-through over controls.
 const hearingDialogOpen = ref(false)
-defineExpose({ hearingDialogOpen })
+defineExpose({ hearingDialogOpen, islandRef })
 
 function refreshWindow() {
   window.location.reload()
@@ -108,7 +119,14 @@ function refreshWindow() {
 </script>
 
 <template>
-  <div ref="islandRef" fixed bottom-2 right-2>
+  <div
+    ref="islandRef"
+    fixed bottom-2 right-2
+    @mouseenter="keepWindowInteractive"
+    @mousemove="keepWindowInteractive"
+    @pointerenter="keepWindowInteractive"
+    @pointermove="keepWindowInteractive"
+  >
     <div flex flex-col items-end gap-1>
       <!-- iOS Style Drawer Panel -->
       <Transition
@@ -120,7 +138,7 @@ function refreshWindow() {
         <div v-if="expanded" border="1 neutral-200 dark:neutral-800" mb-2 flex flex-col gap-1 rounded-2xl p-2 backdrop-blur-xl class="bg-neutral-100/80 shadow-2xl shadow-black/20 dark:bg-neutral-900/80">
           <div grid grid-cols-3 gap-2>
             <ControlButtonTooltip>
-              <ControlButton :button-style="adjustStyleClasses.button" @click="openSettings">
+              <ControlButton :button-style="adjustStyleClasses.button" @click="() => openSettings()">
                 <div i-solar:settings-minimalistic-outline :class="adjustStyleClasses.icon" text="neutral-800 dark:neutral-300" />
               </ControlButton>
               <template #tooltip>
@@ -129,7 +147,7 @@ function refreshWindow() {
             </ControlButtonTooltip>
 
             <ControlButtonTooltip>
-              <ControlButton :button-style="adjustStyleClasses.button" @click="openChat">
+              <ControlButton :button-style="adjustStyleClasses.button" @click="() => openChat()">
                 <div i-solar:chat-line-line-duotone :class="adjustStyleClasses.icon" text="neutral-800 dark:neutral-300" />
               </ControlButton>
               <template #tooltip>

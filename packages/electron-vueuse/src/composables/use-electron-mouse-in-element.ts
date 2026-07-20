@@ -1,7 +1,7 @@
 import type { MaybeElementRef, MouseInElementOptions } from '@vueuse/core'
 
 import { defaultWindow, tryOnMounted, unrefElement, useEventListener, useMutationObserver, useResizeObserver } from '@vueuse/core'
-import { shallowRef, watch } from 'vue'
+import { computed, shallowRef, watch } from 'vue'
 
 import { useElectronRelativeMouse } from './use-electron-relative-mouse'
 
@@ -26,7 +26,7 @@ export function useElectronMouseInElement(
 
   const { x, y, sourceType } = useElectronRelativeMouse(options)
 
-  const targetRef = shallowRef(target ?? window?.document.body)
+  const targetRef = computed(() => unrefElement(target ?? window?.document.body))
   const elementX = shallowRef(0)
   const elementY = shallowRef(0)
   const elementPositionX = shallowRef(0)
@@ -39,7 +39,7 @@ export function useElectronMouseInElement(
     if (!window)
       return
 
-    const el = unrefElement(targetRef)
+    const el = targetRef.value
     if (!el || !(el instanceof Element))
       return
 
