@@ -59,7 +59,7 @@ describe('cloud provider defaults', () => {
     const hearing = useHearingStore()
 
     expect(consciousness.activeProvider).toBe('openai')
-    expect(consciousness.activeModel).toBe('gpt-5.5-instant')
+    expect(consciousness.activeModel).toBe('gpt-5.5')
     expect(speech.activeSpeechProvider).toBe('elevenlabs')
     expect(speech.activeSpeechModel).toBe('eleven_multilingual_v2')
     expect(speech.activeSpeechVoiceId).toBe('21m00Tcm4TlvDq8ikWAM')
