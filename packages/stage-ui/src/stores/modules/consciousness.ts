@@ -6,8 +6,8 @@ import { computed } from 'vue'
 import { useProvidersStore } from '../providers'
 
 const DEFAULT_CHAT_PROVIDER = 'openai'
-const DEFAULT_CHAT_MODEL = 'gpt-5-nano'
-const LEGACY_DEFAULT_CHAT_MODELS = new Set(['gpt-4o-mini'])
+const DEFAULT_CHAT_MODEL = 'gpt-5.5-instant'
+const LEGACY_DEFAULT_CHAT_MODELS = new Set(['gpt-4o-mini', 'gpt-5-nano', 'gpt-4.1-nano'])
 
 export const useConsciousnessStore = defineStore('consciousness', () => {
   const providersStore = useProvidersStore()
