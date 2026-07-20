@@ -48,7 +48,7 @@ export const providerOpenAI = defineProvider<OpenAICompatibleConfig>({
   validators: {
     ...createOpenAICompatibleValidators({
       checks: ['connectivity', 'model_list', 'chat_completions'],
-      validationModel: 'gpt-4o-mini',
+      validationModel: 'gpt-5-nano',
     }),
   },
 })
