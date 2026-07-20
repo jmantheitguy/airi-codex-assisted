@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Alert } from '@proj-airi/stage-ui/components'
 import { Button } from '@proj-airi/ui'
 import { storeToRefs } from 'pinia'
 import { computed, onMounted } from 'vue'
@@ -6,7 +7,6 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import {
-  Alert,
   ProviderAdvancedSettings,
   ProviderApiKeyInput,
   ProviderBaseUrlInput,
