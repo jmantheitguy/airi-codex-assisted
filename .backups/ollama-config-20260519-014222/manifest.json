@@ -1,0 +1,34 @@
+[
+  {
+    "path": "packages\\stage-ui\\src\\libs\\providers\\providers\\ollama\\index.ts",
+    "sha256": "A21CBDBB86344AAAD35692860365BFCF2B8FAAFFBF612FC7A2073F43B156B98E"
+  },
+  {
+    "path": "packages\\stage-ui\\src\\libs\\providers\\providers\\ollama\\index.test.ts",
+    "sha256": "C9623CC9427418F4CB62D87D0FF7B95F563275704C7EC7783938A787A1F2278F"
+  },
+  {
+    "path": "packages\\stage-ui\\src\\stores\\onboarding.ts",
+    "sha256": "9C05775844BF56F9299387FC465C187EB4DA8D1E6A54C8C4581E3DF6D25B2576"
+  },
+  {
+    "path": "packages\\stage-ui\\src\\components\\scenarios\\dialogs\\onboarding\\onboarding.vue",
+    "sha256": "59F7D06FF444B55C4B65D80D345C65014ED823825CD96EA1780005851031BABC"
+  },
+  {
+    "path": "packages\\stage-ui\\src\\components\\scenarios\\dialogs\\onboarding\\step-provider-configuration.vue",
+    "sha256": "F0D5C94FDE49409C7C60B53DA6594A624484C2AF254AFAA94C5AF046FEA7630C"
+  },
+  {
+    "path": "packages\\stage-pages\\src\\pages\\settings\\providers\\chat\\ollama.vue",
+    "sha256": "A5EEDC3D1586153C47C1769340960274DFD741446CD3E6C8826896B780DD7AC5"
+  },
+  {
+    "path": "packages\\stage-pages\\src\\pages\\v2\\settings\\providers\\edit\\[providerId]\\index.vue",
+    "sha256": "EED6364D54B79918109971E01F89FA4BBD4414E831C6502A97E1CDCB0200F815"
+  },
+  {
+    "path": "packages\\i18n\\src\\locales\\en\\settings.yaml",
+    "sha256": "FD469F749E849A6DA1E7CDF56E3CDFC2E7EABC6E3BCAD7CC7BCC46D1C6219DE5"
+  }
+]

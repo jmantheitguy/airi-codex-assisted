@@ -1,0 +1,11 @@
+Backup: before-vtuber-speech-20260717-013302
+Date: 2026-07-17T01:33:12.0146197-04:00
+Branch: main
+Commit: dbaee8650a3329c48f0328a259735ee9136bef2c
+Status:
+?? .backups/
+
+Restore notes:
+- Source tree was clean except .backups/ at backup time.
+- To return source code to this exact commit: git switch main; git reset --hard dbaee8650a3329c48f0328a259735ee9136bef2c
+- Do not run reset --hard unless you intentionally want to discard later local changes.
